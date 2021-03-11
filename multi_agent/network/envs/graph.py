@@ -5,20 +5,14 @@ EPSILON = 1e-10
 class Graph():
 
     def __init__(   self,
-                    number_of_agents         = 3,\
-                    haircut_multiplier      = 0.5,\
-                ) -> None:
+                    args
+                ):
 
         """
-        :attribute  haircut_multiplier          the amount of discount applied to any defaulting bank
+        : WRITE ME
         """
-        print(f"Initializing graph!")
-
-        self.number_of_agents           = number_of_agents
-        self.haircut_multiplier         = haircut_multiplier
-    
-        print(f"Finished initializing graph!")
-
+        self.args = args
+        self.reset()
 
     def get_observation(self, agent_identifier):
         """
@@ -28,7 +22,8 @@ class Graph():
                             matrix stacking the debt and cash position of each agent
         """
 
-        return np.hstack((self.adjacency_matrix.reshape(1,-1), self.position[agent_identifier].reshape(1,-1)))
+        # Full information
+        return np.hstack((self.adjacency_matrix.reshape(1,-1), self.position.reshape(1,-1)))
 
         
     def _initialize_banks(self, adjacency_matrix=None, position=None):
@@ -132,6 +127,8 @@ class Graph():
         :param  None
         :output None
         """
+        self.adjacency_matrix = np.asarray(self.args.adjacency_matrix)
+        self.position = np.asarray(self.args.position)
         pass
 
     

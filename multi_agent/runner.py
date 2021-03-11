@@ -102,7 +102,6 @@ class Runner:
             s, info = self.env.reset()
 
             system_configurations.append({'initial_configurations':copy.deepcopy(info)})
-            initial_net_positions.append(info['net_position'])
 
             # Obtain the results for a series of trainings
             for time_step in range(self.args.evaluate_episode_len):
@@ -116,10 +115,6 @@ class Runner:
                         action = agent.select_action(s[agent_id], 0, 0)
                         actions.append(action)
                 
-                # Establish a baseline by doing nothing
-                if self.args.do_nothing:
-                    actions = np.zeros((self.args.n_agents, self.args.n_agents))
-
                 # Take the next action
                 s_next, rewards, done, info = self.env.step(actions)
 
@@ -130,8 +125,6 @@ class Runner:
                 system_configurations[-1]['action'] = copy.deepcopy(actions)
                 
             # Store the cumulative rewards
-            net_positions.append(info['net_position'])
-
             system_configurations[-1]['final_configurations'] = copy.deepcopy(info)
 
         print(f'Average starting net position: {np.mean(initial_net_positions)}')

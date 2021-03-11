@@ -82,7 +82,7 @@ class MADDPG:
         observations, actions, next_observations = [], [], []
 
         # Store the triplet for each agent in the given transition
-        for agent_identifier in range(self.args.n_banks):
+        for agent_identifier in range(self.args.n_agents):
             observations.append(transitions[f'observations_{agent_identifier}'])
             actions.append(transitions[f'actions_{agent_identifier}'])
             next_observations.append(transitions[f'next_observations_{agent_identifier}'])
@@ -93,7 +93,7 @@ class MADDPG:
         with torch.no_grad():
             index = 0 
             # Calculate the next action for each agent
-            for agent_identifier in range(self.args.n_banks):
+            for agent_identifier in range(self.args.n_agents):
                 if agent_identifier == self.agent_identifer:
                     next_action.append(self.actor_target_network(next_observations[agent_identifier]))
                 else:

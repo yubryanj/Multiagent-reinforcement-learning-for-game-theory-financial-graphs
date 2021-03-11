@@ -2,6 +2,7 @@ import gym
 import numpy as np
 from gym import spaces
 from .graph import Graph
+import numpy
 
 
 class Network(gym.Env):
@@ -13,16 +14,14 @@ class Network(gym.Env):
     self.args                 = args
     self.timestep             = 0
 
-
     self.observation_space = []
     self.action_space = []
-    self.adjacency_matrix = args.adjacency_matrix
-    self.position = args.position
+    self.graph = Graph(args)
     
     for _ in range(args.n_agents):
       self.observation_space.append(spaces.Box( low   = 0,\
                                                 high  = self.args.maximum_position, \
-                                                shape = (1, self.args.n_agents * self.args.n_agents), \
+                                                shape = (1, self.args.n_agents * self.args.n_agents + self.args.n_agents), \
                                                 dtype = np.float32
                                       ))
 
@@ -33,10 +32,6 @@ class Network(gym.Env):
                                             shape = (1, self.args.n_agents), 
                                             dtype = np.float32
                                             )) 
-
-    # TODO: Write me!
-    self.graph = Graph()
-
 
 
   def step(self, action):
@@ -57,18 +52,16 @@ class Network(gym.Env):
 
     # # Allocate the cash as the agents requested
     # TODO: WRITE ME - COLLECT THE REWARDS
-    rewards       = None
+    rewards       = [0,0,0]
     done          = self._determine_if_episode_is_done()
 
-    # TODO: WRITEME Collect information
     info = self.get_info()
                     
     # Retrieve the observations of the resetted environment
-    observations = [[],[],[]]
+    observations = []
     
     for agent_identifier in range(self.args.n_agents):
-      #TODO: WRITE ME - get observations
-      observations.append([])
+      observations.append(self.graph.get_observation(agent_identifier))
 
     return observations, rewards, done, info
 
@@ -84,17 +77,14 @@ class Network(gym.Env):
     self.timestep = 0
 
     # Reset the environment
-    self.adjacency_matrix = self.args.adjacency_matrix
-    self.position = self.args.position
+    self.graph.reset()
 
     # Retrieve the observations of the resetted environment
-    observations = [[0],[],[]]
+    observations = []
     
     for agent_identifier in range(self.args.n_agents):
-      # TODO: WRITE ME! - Get observations
-      observations.append([])
+      observations.append(self.graph.get_observation(agent_identifier))
 
-    # TODO: WRITEME Collect information
     info = self.get_info()
 
     return observations, info
