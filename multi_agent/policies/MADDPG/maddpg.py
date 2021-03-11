@@ -1,6 +1,7 @@
 from policies.MADDPG.actor_critic import Actor, Critic
 import torch
 import os
+import numpy as np
 
 class MADDPG:
     def __init__(self, args, agent_identifier) -> None:
@@ -29,7 +30,7 @@ class MADDPG:
             os.mkdir(self.args.save_dir)
 
         # Create the directory for this agent
-        self.agent_path = f'{self.args.save_dir}/agent_{agent_identifier}'
+        self.agent_path = f'{self.args.save_dir}/models/agent_{agent_identifier}'
         if not os.path.exists(self.agent_path):
             os.mkdir(self.agent_path)
 
@@ -69,7 +70,10 @@ class MADDPG:
 
         # Convert transitions which is an np array into a tensor
         for key in transitions.keys():
-            transitions[key] = torch.tensor(transitions[key], dtype=torch.float32)
+            if type(transitions[key]).__module__ == np.__name__:            # If it is an np array
+                transitions[key] = torch.tensor(transitions[key], dtype=torch.float32)
+            else:                                                             
+                transitions[key] = transitions[key].clone().detach()
         
         # Retrieve the rewards
         rewards = transitions[f'rewards_{self.agent_identifer}']
@@ -147,7 +151,7 @@ class MADDPG:
         """
         num = str(train_step // self.args.save_rate)
         
-        print(f"Saving model at timestep {train_step} at {self.agent_path}/{num}_actor_params.pkl, {self.agent_path}/{num}_critic_parms.pkl")
+        # print(f"Saving model at timestep {train_step} at {self.agent_path}/actor_params.pkl, {self.agent_path}/critic_parms.pkl")
 
         #Create the directory structure for storing models
         if not os.path.exists(self.args.save_dir):
@@ -156,5 +160,5 @@ class MADDPG:
             os.mkdir(self.agent_path)
 
 
-        torch.save(self.actor_network.state_dict(), f'{self.agent_path}/{num}_actor_params.pkl')
-        torch.save(self.critic_network.state_dict(), f'{self.agent_path}/{num}_critic_params.pkl')
+        torch.save(self.actor_network.state_dict(), f'{self.agent_path}/actor_params.pkl')
+        torch.save(self.critic_network.state_dict(), f'{self.agent_path}/critic_params.pkl')

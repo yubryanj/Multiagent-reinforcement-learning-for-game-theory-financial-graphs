@@ -12,7 +12,7 @@ class Buffer:
         
         self.buffer = dict()
 
-        for agent_identifier in range(self.args.n_banks):
+        for agent_identifier in range(self.args.n_agents):
             self.buffer[f'observations_{agent_identifier}'] = np.empty([self.max_size, self.args.obs_shape[agent_identifier]])
             self.buffer[f'actions_{agent_identifier}'] = np.empty([self.max_size, self.args.action_shape[agent_identifier]])
             self.buffer[f'rewards_{agent_identifier}'] = np.empty([self.max_size])
@@ -31,7 +31,7 @@ class Buffer:
         indices = self._get_storage_indices(increment=1)
 
         # Store the episode into the buffer
-        for agent_identifier in range(self.args.n_banks):
+        for agent_identifier in range(self.args.n_agents):
             # Retrieve the lock so that the data is updated simultaneously
             with self.lock:
                 self.buffer[f'observations_{agent_identifier}'][indices] = observation[agent_identifier]

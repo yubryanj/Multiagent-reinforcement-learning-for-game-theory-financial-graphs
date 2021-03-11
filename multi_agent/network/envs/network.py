@@ -1,18 +1,14 @@
 import gym
 import numpy as np
 from gym import spaces
-from .financial_graph import Financial_Graph
-from agent import Agent
+from .graph import Graph
 
 
-DEBUG = False
-
-class Financial_Network_Env_Multi_Agent(gym.Env):
+class Network(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(self,args):
 
-    print("Initializing environment") if DEBUG else None
 
     self.args                 = args
     self.timestep             = 0
@@ -20,11 +16,13 @@ class Financial_Network_Env_Multi_Agent(gym.Env):
 
     self.observation_space = []
     self.action_space = []
+    self.adjacency_matrix = args.adjacency_matrix
+    self.position = args.position
     
-    for _ in range(args.n_banks):
+    for _ in range(args.n_agents):
       self.observation_space.append(spaces.Box( low   = 0,\
-                                                high  = self.args.cash_in_circulation, \
-                                                shape = (1, self.args.number_of_banks * self.args.number_of_banks + 1), \
+                                                high  = self.args.maximum_position, \
+                                                shape = (1, self.args.n_agents * self.args.n_agents), \
                                                 dtype = np.float32
                                       ))
 
@@ -32,17 +30,13 @@ class Financial_Network_Env_Multi_Agent(gym.Env):
       # NOTE: Assumes all-to-all connection between banks
       self.action_space.append(spaces.Box(  low   = 0,\
                                             high  = 1,\
-                                            shape = (1, self.args.number_of_banks), 
+                                            shape = (1, self.args.n_agents), 
                                             dtype = np.float32
                                             )) 
 
-    # Initialize the debt and cash positions of the banks
-    self.financial_graph = Financial_Graph( number_of_banks     = self.args.number_of_banks,\
-                                            cash_in_circulation = self.args.cash_in_circulation,\
-                                            haircut_multiplier  = self.args.haircut_multiplier,\
-                                          )
+    # TODO: Write me!
+    self.graph = Graph()
 
-    print("Finished initializing environment") if DEBUG else None
 
 
   def step(self, action):
@@ -62,55 +56,52 @@ class Financial_Network_Env_Multi_Agent(gym.Env):
     self.timestep += 1
 
     # # Allocate the cash as the agents requested
-    rewards       = self.financial_graph.take_action(action, reward_mode=self.args.reward_type)
+    # TODO: WRITE ME - COLLECT THE REWARDS
+    rewards       = None
     done          = self._determine_if_episode_is_done()
-    info          = { 'net_position':self.financial_graph.get_system_net_position(),\
-                      'individual_net_position':self.financial_graph.get_individual_net_position(),\
-                      'cash_position': self.financial_graph.cash_position,\
-                      'debts': self.financial_graph.debts
-                    }
+
+    # TODO: WRITEME Collect information
+    info = self.get_info()
                     
     # Retrieve the observations of the resetted environment
-    observations = []
+    observations = [[],[],[]]
     
-    for agent_identifier in range(self.args.n_banks):
-      observations.append(self.financial_graph.get_observation(agent_identifier))
-
-
-    if self.args.reward_type == 'System':
-      # Allocate the same reward to all the agents
-      rewards = np.ones(self.args.n_banks) * rewards
+    for agent_identifier in range(self.args.n_agents):
+      #TODO: WRITE ME - get observations
+      observations.append([])
 
     return observations, rewards, done, info
 
 
-  def reset(self, evaluate=False):
+  def reset(self):
     """
     Resets the environment to the initial state
     :param  None
     :output observations  np.matrix representing initial environment state
     """
-    print("Resetting the environment") if DEBUG else None
 
     # Reset the timestep counter
     self.timestep = 0
 
     # Reset the environment
-    self.financial_graph.reset(evaluate=evaluate)
+    self.adjacency_matrix = self.args.adjacency_matrix
+    self.position = self.args.position
 
     # Retrieve the observations of the resetted environment
-    observations = []
+    observations = [[0],[],[]]
     
-    for agent_identifier in range(self.args.n_banks):
-      observations.append(self.financial_graph.get_observation(agent_identifier))
+    for agent_identifier in range(self.args.n_agents):
+      # TODO: WRITE ME! - Get observations
+      observations.append([])
 
-    info = { 'net_position':self.financial_graph.get_system_net_position(),\
-              'individual_net_position':self.financial_graph.get_individual_net_position(),\
-              'cash_position': self.financial_graph.cash_position,\
-              'debts': self.financial_graph.debts
-          }
+    # TODO: WRITEME Collect information
+    info = self.get_info()
 
     return observations, info
+
+
+  def get_info(self):
+        pass
 
 
   def render(self, mode='human'):
@@ -121,7 +112,7 @@ class Financial_Network_Env_Multi_Agent(gym.Env):
     """
 
     if mode == 'human':
-      print("Rendering the environment") if DEBUG else None
+      pass
     else:
       pass
 
@@ -132,7 +123,6 @@ class Financial_Network_Env_Multi_Agent(gym.Env):
     :param  None
     :output None
     """
-    print("Closing the environment") if DEBUG else None
     pass
 
 

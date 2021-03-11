@@ -46,14 +46,12 @@ class Critic(nn.Module):
         :param  action  action vector 
         :output q_value valuation of the taken state-action pair
         """
-        #TODO: What is this doing?
         state = torch.cat(state, dim=1)
         
         for i in range(len(action)):
             action[i] /= self.max_action
 
         # Concatenate the action vector 
-        # TODO: What is this doing? Does action hold one vector for each agent?
         action = torch.cat(action, dim=1)
         x = torch.cat([state, action], dim=1)
         x = F.relu(self.fc1(x))

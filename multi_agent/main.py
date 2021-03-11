@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     # If the evaulation flag is enabled, evaluate the model
     if args.evaluate:
-        returns = runner.evaluate()
+        returns = runner.evaluate(args)
     else:
         # Else train the model
         runner.run()

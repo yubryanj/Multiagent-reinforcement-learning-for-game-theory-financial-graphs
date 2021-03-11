@@ -7,7 +7,6 @@ import numpy as np
 import copy
 
 
-
 class Runner:
     def __init__(self, args, env):
         self.args = args
@@ -21,12 +20,14 @@ class Runner:
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
 
+
     def _init_agents(self):
         agents = []
-        for i in range(self.args.n_banks):
+        for i in range(self.args.n_agents):
             agent = Agent(i, self.args)
             agents.append(agent)
         return agents
+
 
     def run(self):
         returns = []
@@ -36,7 +37,7 @@ class Runner:
         for time_step in tqdm(range(self.args.time_steps)):
             
             # reset the environment and get the first sample
-            state, _ = self.env.reset(evaluate=False)
+            state, _ = self.env.reset()
 
             u = []
             actions = []
@@ -54,7 +55,7 @@ class Runner:
             next_state, reward, done, info = self.env.step(actions)
 
             # Store the episode in the replay buffer
-            self.buffer.store_episode(state[:self.args.n_banks], u, reward[:self.args.n_banks], next_state[:self.args.n_banks])
+            self.buffer.store_episode(state[:self.args.n_agents], u, reward[:self.args.n_agents], next_state[:self.args.n_agents])
 
             # Update the state
             state = next_state
@@ -78,7 +79,7 @@ class Runner:
             # Evaluate the learning
             if time_step >0 and time_step % self.args.evaluate_rate == 0:
                 print(f'Timestep {time_step}: Conducting an evaluation:')
-                average_net_position = self.evaluate()
+                average_net_position = self.evaluate(self.args)
                 returns.append(average_net_position)
 
             # Generate Noise
@@ -86,21 +87,22 @@ class Runner:
             self.epsilon = max(0.05, self.noise - 0.0000005)
 
             # Save the returns
-            np.save(f'{self.save_path}/returns.pkl', returns)
+            np.save(f'{self.args.save_dir}/returns.pkl', returns)
 
 
-    def evaluate(self):
+    def evaluate(self, args=None):
         # Allocate lists to store results from info
+        initial_net_positions = []
         net_positions = []
         system_configurations = []
-
 
         for episode in range(self.args.evaluate_episodes):
 
             # reset the environment
-            s, info = self.env.reset(evaluate=True)
+            s, info = self.env.reset()
 
             system_configurations.append({'initial_configurations':copy.deepcopy(info)})
+            initial_net_positions.append(info['net_position'])
 
             # Obtain the results for a series of trainings
             for time_step in range(self.args.evaluate_episode_len):
@@ -116,7 +118,7 @@ class Runner:
                 
                 # Establish a baseline by doing nothing
                 if self.args.do_nothing:
-                    actions = np.zeros((self.args.n_banks, self.args.n_banks))
+                    actions = np.zeros((self.args.n_agents, self.args.n_agents))
 
                 # Take the next action
                 s_next, rewards, done, info = self.env.step(actions)
@@ -132,9 +134,9 @@ class Runner:
 
             system_configurations[-1]['final_configurations'] = copy.deepcopy(info)
 
-        print(f"Average systems net position over {self.args.evaluate_episodes} episodes is {np.mean(net_positions)}")
+        print(f'Average starting net position: {np.mean(initial_net_positions)}')
+        print(f'Average ending net position: {np.mean(net_positions)}')
 
-        np.save("./data/evaluation-data",system_configurations)
+        np.save(f"{self.args.save_dir}/evaluation-data", system_configurations)
 
         return np.mean(net_positions)
-
