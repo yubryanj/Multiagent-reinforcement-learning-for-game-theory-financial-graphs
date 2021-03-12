@@ -1,11 +1,11 @@
-from network.envs.network import Network
+from scenarios.envs.volunteers_dilemma import Volunteers_dilemma
 import numpy as np
 
 def make_env(args):
 
     args = load_scenario(args)
 
-    env = Network(args)
+    env = Volunteers_dilemma(args)
     args.obs_shape = [env.observation_space[i].shape[1] for i in range(args.n_agents)]
     args.action_shape = [env.action_space[i].shape[1] for i in range(args.n_agents)]
     args.high_action = 1
@@ -26,10 +26,10 @@ def load_scenario(args):
     return args
 
 def volunteers_dilemma():
-    adjacency_matrix = [[0,1,0],
-                        [0,0,0],
-                        [0,0,1]]
+    adjacency_matrix = [[0,0,0],
+                        [5,0,5],
+                        [0,0,0]]
 
-    position = [10, -5, 10]
+    position = [5, -1, 5]
 
     return adjacency_matrix, position

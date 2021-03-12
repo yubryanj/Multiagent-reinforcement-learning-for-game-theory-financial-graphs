@@ -92,8 +92,7 @@ class Runner:
 
     def evaluate(self, args=None):
         # Allocate lists to store results from info
-        initial_net_positions = []
-        net_positions = []
+        positions = []
         system_configurations = []
 
         for episode in range(self.args.evaluate_episodes):
@@ -123,13 +122,13 @@ class Runner:
 
                 # Store the action taken
                 system_configurations[-1]['action'] = copy.deepcopy(actions)
+                positions.append(info['cleared_positions'])
                 
             # Store the cumulative rewards
             system_configurations[-1]['final_configurations'] = copy.deepcopy(info)
 
-        print(f'Average starting net position: {np.mean(initial_net_positions)}')
-        print(f'Average ending net position: {np.mean(net_positions)}')
+        print(f'Average positions: {np.mean(positions,axis=0)}, total: {np.mean(np.sum(positions, axis=1))}')
 
         np.save(f"{self.args.save_dir}/evaluation-data", system_configurations)
 
-        return np.mean(net_positions)
+        return np.mean(positions)
