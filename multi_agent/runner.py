@@ -23,8 +23,10 @@ class Runner:
 
     def _init_agents(self):
         agents = []
+        # Share the same agent and critic; Move below if a different agent/critic per
+        agent = Agent(0, self.args)
+        
         for i in range(self.args.n_agents):
-            agent = Agent(i, self.args)
             agents.append(agent)
         return agents
 
@@ -37,28 +39,27 @@ class Runner:
         for time_step in tqdm(range(self.args.time_steps)):
             
             # reset the environment and get the first sample
-            state, _ = self.env.reset()
+            obs, _ = self.env.reset()
 
-            u = []
+            initial_obs = copy.deepcopy(obs)
             actions = []
 
             with torch.no_grad():
                 # For each agent
                 for agent_id, agent in enumerate(self.agents):
                     # select an action
-                    action = agent.select_action(state[agent_id], self.noise, self.epsilon)
+                    action = agent.select_action(obs[agent_id], self.noise, self.epsilon, evaluate=False)
                     # store the action 
-                    u.append(action)
                     actions.append(action)
 
-            # Take the next action; retrieve next state, reward, done, and additional information
-            next_state, reward, done, info = self.env.step(actions)
+            # Take the next action; retrieve next obs, reward, done, and additional information
+            next_obs, reward, done, info = self.env.step(actions)
 
             # Store the episode in the replay buffer
-            self.buffer.store_episode(state[:self.args.n_agents], u, reward[:self.args.n_agents], next_state[:self.args.n_agents])
+            self.buffer.store_episode(initial_obs[:self.args.n_agents], actions, reward[:self.args.n_agents], next_obs[:self.args.n_agents])
 
-            # Update the state
-            state = next_state
+            # Update the obs
+            obs = next_obs
 
             # If there are enough samples in the buffer
             if self.buffer.current_size >= self.args.batch_size:
@@ -83,11 +84,13 @@ class Runner:
                 returns.append(average_net_position)
 
             # Generate Noise
-            self.noise = max(0.05, self.noise - 0.0000005)
-            self.epsilon = max(0.05, self.noise - 0.0000005)
+            self.noise = 0
+            self.epsilon = max(0.20, self.epsilon - 0.00005)
 
             # Save the returns
-            np.save(f'{self.args.save_dir}/returns.pkl', returns)
+            # np.save(f'{self.args.save_dir}/returns.pkl', returns)
+
+
 
 
     def evaluate(self, args=None):
@@ -111,13 +114,13 @@ class Runner:
                 with torch.no_grad():
                     for agent_id, agent in enumerate(self.agents):
                         # Select the action for the given agent
-                        action = agent.select_action(s[agent_id], 0, 0)
+                        action = agent.select_action(s[agent_id], 0, 0, evaluate=True)
                         actions.append(action)
                 
                 # Take the next action
                 s_next, rewards, done, info = self.env.step(actions)
 
-                # Update the state
+                # Update the obs
                 s = s_next
 
                 # Store the action taken

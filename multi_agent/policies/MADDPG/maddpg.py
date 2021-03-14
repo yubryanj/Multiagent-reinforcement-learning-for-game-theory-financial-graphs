@@ -25,7 +25,9 @@ class MADDPG:
         self.actor_optimizer = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
         self.critic_optimizer = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
 
-        #Create the directory structure for storing models
+        self.loss = torch.nn.L1Loss()
+
+        # Create the directory structure for storing models
         if not os.path.exists(self.args.save_dir):
             os.mkdir(self.args.save_dir)
 
@@ -103,14 +105,15 @@ class MADDPG:
             next_q_value = self.critic_target_network(next_observations, next_action).detach()
 
             # Calculate the target q value for the gradient update as [ immediate reward + discount * future_reward ]; remove graph from the tensor
-            target_q = (rewards.unsqueeze(1) + self.args.gamma * next_q_value).detach()
+            # target_q = (rewards.unsqueeze(1) + self.args.gamma * next_q_value).detach()
+            target_q = (rewards.unsqueeze(1)).detach()
 
         """ Compute the loss and update """
         # Compute the q value for the current observation, action pair
         current_q = self.critic_network(observations, actions)
 
         # Square the error of the value from this experience 
-        critic_loss = (target_q - current_q).pow(2).mean()
+        critic_loss = self.loss(target_q, current_q)
 
         # Actor loss
         # Calculate the actions of the agent using the current observations
@@ -134,7 +137,7 @@ class MADDPG:
         self.critic_optimizer.step()
 
         # Update both networks
-        self._soft_update_target_network()
+        # self._soft_update_target_network()
 
         # Save the model
         if self.train_step > 0 and self.train_step % self.args.save_rate == 0:

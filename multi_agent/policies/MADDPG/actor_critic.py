@@ -24,9 +24,11 @@ class Actor(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        action = self.max_action * torch.tanh(self.action_out(x))
+        action = self.action_out(x)
 
+        # action = torch.clamp(action, 0, 1)
         return action
+
 
 class Critic(nn.Module):
     def __init__(self, args) -> None:
@@ -48,8 +50,8 @@ class Critic(nn.Module):
         """
         state = torch.cat(state, dim=1)
         
-        for i in range(len(action)):
-            action[i] /= self.max_action
+        # for i in range(len(action)):
+        #     action[i] /= self.max_action
 
         # Concatenate the action vector 
         action = torch.cat(action, dim=1)

@@ -25,11 +25,17 @@ def load_scenario(args):
 
     return args
 
-def volunteers_dilemma():
-    adjacency_matrix = [[0,0,0],
-                        [5,0,5],
-                        [0,0,0]]
 
-    position = [5, -1, 5]
+def volunteers_dilemma():
+    adjacency_matrix = [[0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0],
+                        [5.0, 5.0, 0.0]]
+
+    position = [5.0, 5.0, -1.0]
+
+    # adjacency_matrix = [[0,0],
+    #                     [2,0]]
+
+    # position = [1, -1]
 
     return adjacency_matrix, position
