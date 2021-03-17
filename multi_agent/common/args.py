@@ -13,8 +13,8 @@ def get_args():
     # Environment
     parser.add_argument("--max-episode-len", type=int, default=1, help="maximum episode length")
     parser.add_argument("--time-steps", type=int, default=int(1e4), help="number of time steps")
-    parser.add_argument("--maximum_position", type=int, default=30, help="maximum position of a bank")
-    parser.add_argument("--n-agents", type=int, default=2, help="number of banks")
+    parser.add_argument("--maximum_position", type=int, default=30, help="maximum position of a agent")
+    parser.add_argument("--n-agents", type=int, default=2, help="number of agents")
 
 
     # Training parameters

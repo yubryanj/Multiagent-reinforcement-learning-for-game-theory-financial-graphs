@@ -41,6 +41,7 @@ class Runner:
             # reset the environment and get the first sample
             obs, _ = self.env.reset()
 
+            # observations would be modified after taking a "step" if a deep copy is not made
             initial_obs = copy.deepcopy(obs)
             actions = []
 
