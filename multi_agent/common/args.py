@@ -15,6 +15,7 @@ def get_args():
     parser.add_argument("--time-steps", type=int, default=int(1e4), help="number of time steps")
     parser.add_argument("--maximum_position", type=int, default=30, help="maximum position of a agent")
     parser.add_argument("--n-agents", type=int, default=1, help="number of agents")
+    parser.add_argument("--haircut-multiplier", type=float, default=0.01, help="Amount to haircut defaulted nodes")
 
 
     # Training parameters

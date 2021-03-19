@@ -172,12 +172,27 @@ class Volunteers_dilemma(gym.Env):
     adjacency_matrix = deepcopy(self.adjacency_matrix)
     position = deepcopy(self.position)
     for agent in range(adjacency_matrix.shape[0]):
-        if position[agent] < 0:
-            adjacency_matrix[agent, : ] = 0
+        
+        net_position = self.get_net_position(agent)
+
+        if net_position < 0:
+          # Compute the net position
+          position[agent] -= np.sum(adjacency_matrix[agent, :])
+          adjacency_matrix[agent, : ] *= self.args.haircut_multiplier
+
+          # Distribute the funds
+          position += np.sum(adjacency_matrix, axis=0)
+          adjacency_matrix[agent,:] = 0
+          adjacency_matrix[:, agent] = 0
+              
+        # if position[agent] < 0:
+            # adjacency_matrix[agent, : ] = 0
 
     position += np.sum(adjacency_matrix, axis=0)
+    position -= np.sum(adjacency_matrix, axis=1)
 
     return position
+
 
   def get_observation(self, agent_identifier=None):
     """
@@ -188,9 +203,17 @@ class Volunteers_dilemma(gym.Env):
     """
     # Full information
     # return np.hstack((self.adjacency_matrix.reshape(1,-1), self.position.reshape(1,-1)))
-    return self.position.reshape(1,-1)
+    observation = self.clear().reshape(1,-1)
+    # observation = self.position.reshape(1,-1)
+    return observation
+
 
   def get_observation_size(self):
     # return self.adjacency_matrix.size + self.position.size
     obs = self.get_observation()
     return obs.shape[1]
+
+
+  def get_net_position(self, agent):
+      net_position = self.position[agent] - np.sum(self.adjacency_matrix[agent,:]) + np.sum(self.adjacency_matrix[:,agent])
+      return net_position
