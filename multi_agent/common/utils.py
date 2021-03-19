@@ -31,11 +31,6 @@ def volunteers_dilemma():
                         [0.0, 0.0, 0.0],
                         [5.0, 5.0, 0.0]]
 
-    position = [5.0, 5.0, -1.0]
-
-    # adjacency_matrix = [[0,0],
-    #                     [2,0]]
-
-    # position = [1, -1]
+    position = [10.0, 10.0, -1.0]
 
     return adjacency_matrix, position

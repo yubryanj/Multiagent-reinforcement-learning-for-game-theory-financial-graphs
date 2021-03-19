@@ -1,8 +1,8 @@
 import gym
 import numpy as np
 from gym import spaces
-from .graph import Graph
 import numpy as np
+from copy import deepcopy
 
 
 class Volunteers_dilemma(gym.Env):
@@ -12,17 +12,18 @@ class Volunteers_dilemma(gym.Env):
     self.args                 = args
     self.timestep             = 0
 
+    self.adjacency_matrix = np.asarray(self.args.adjacency_matrix)
+    self.position = np.asarray(self.args.position)
+
     self.observation_space    = []
     self.action_space         = []
     
-    self.graph                = Graph(args)
-
     self.distressed_node      = 2
     
     for _ in range(args.n_agents):
       self.observation_space.append(spaces.Box( low   = 0,\
                                                 high  = 9, \
-                                                shape = (1, self.graph.get_observation_size()), \
+                                                shape = (1, self.get_observation_size()), \
                                                 dtype = np.float32
                                       ))
 
@@ -54,7 +55,7 @@ class Volunteers_dilemma(gym.Env):
     observations  = []
     
     for agent_identifier in range(self.args.n_agents):
-      observations.append(self.graph.get_observation(agent_identifier))
+      observations.append(self.get_observation(agent_identifier))
 
     info = self.get_info()
 
@@ -71,21 +72,21 @@ class Volunteers_dilemma(gym.Env):
       if agent_identifier == self.distressed_node:
             continue
       else:
-        transferred_amount = self.graph.position[agent_identifier] * action
-        self.graph.position[self.distressed_node] += transferred_amount
-        self.graph.position[agent_identifier] -= transferred_amount
+        transferred_amount = self.position[agent_identifier] * action
+        self.position[self.distressed_node] += transferred_amount
+        self.position[agent_identifier] -= transferred_amount
 
   
   def compute_reward(self, actions):
     """
     Return the requested agent's reward
     """
-    previous_positions = self.graph.clear()
+    previous_positions = self.clear()
 
     # Allocate the cash as the agents requested
     self.take_action(actions)
 
-    new_positions = self.graph.clear()
+    new_positions = self.clear()
 
     change_in_position = new_positions - previous_positions
 
@@ -105,13 +106,14 @@ class Volunteers_dilemma(gym.Env):
     self.timestep = 0
 
     # Reset the environment
-    self.graph.reset()
+    self.adjacency_matrix = np.asarray(self.args.adjacency_matrix)
+    self.position = np.asarray(self.args.position)
     
     # Retrieve the observations of the resetted environment
     observations = []
     
     for agent_identifier in range(self.args.n_agents):
-      observations.append(self.graph.get_observation(agent_identifier))
+      observations.append(self.get_observation(agent_identifier))
 
     info = self.get_info()
 
@@ -120,7 +122,7 @@ class Volunteers_dilemma(gym.Env):
 
   def get_info(self):
         info = {
-          'cleared_positions': self.graph.clear(),
+          'cleared_positions': self.clear(),
         }
 
         return info
@@ -158,3 +160,37 @@ class Volunteers_dilemma(gym.Env):
         return True
     
     return False
+
+
+  def clear(self):
+    """
+    Clear the system to see where everything stabilizes
+    :params None
+    :output TODO:WRITE ME
+    """
+
+    adjacency_matrix = deepcopy(self.adjacency_matrix)
+    position = deepcopy(self.position)
+    for agent in range(adjacency_matrix.shape[0]):
+        if position[agent] < 0:
+            adjacency_matrix[agent, : ] = 0
+
+    position += np.sum(adjacency_matrix, axis=0)
+
+    return position
+
+  def get_observation(self, agent_identifier=None):
+    """
+    Generates the observation matrix displayed to the agent
+    :param    None
+    :output   np.array  [self.number_of_banks + 1, self.number_of_banks] 
+                        matrix stacking the debt and cash position of each agent
+    """
+    # Full information
+    # return np.hstack((self.adjacency_matrix.reshape(1,-1), self.position.reshape(1,-1)))
+    return self.position.reshape(1,-1)
+
+  def get_observation_size(self):
+    # return self.adjacency_matrix.size + self.position.size
+    obs = self.get_observation()
+    return obs.shape[1]

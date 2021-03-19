@@ -14,12 +14,12 @@ def get_args():
     parser.add_argument("--max-episode-len", type=int, default=1, help="maximum episode length")
     parser.add_argument("--time-steps", type=int, default=int(1e4), help="number of time steps")
     parser.add_argument("--maximum_position", type=int, default=30, help="maximum position of a agent")
-    parser.add_argument("--n-agents", type=int, default=2, help="number of agents")
+    parser.add_argument("--n-agents", type=int, default=1, help="number of agents")
 
 
     # Training parameters
-    parser.add_argument("--lr-actor", type=float, default=1e-5, help="learning rate of actor")
-    parser.add_argument("--lr-critic", type=float, default=1e-4, help="learning rate of critic")
+    parser.add_argument("--lr-actor", type=float, default=1e-4, help="learning rate of actor")
+    parser.add_argument("--lr-critic", type=float, default=1e-3, help="learning rate of critic")
     parser.add_argument("--epsilon", type=float, default=0.50, help="epsilon greedy")
     parser.add_argument("--noise_rate", type=float, default=0.10, help="noise rate for sampling from a standard normal distribution ")
     parser.add_argument("--gamma", type=float, default=0.2, help="discount factor")
