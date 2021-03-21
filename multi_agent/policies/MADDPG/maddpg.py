@@ -32,7 +32,7 @@ class MADDPG:
             os.mkdir(self.args.save_dir)
 
         # Create the directory for this agent
-        self.agent_path = f'{self.args.save_dir}/models/agent_{agent_identifier}'
+        self.agent_path = f'{self.args.save_dir}/agent_{agent_identifier}'
         if not os.path.exists(self.agent_path):
             os.mkdir(self.agent_path)
 
@@ -120,7 +120,8 @@ class MADDPG:
         actions[self.agent_identifer] = self.actor_network(observations[self.agent_identifer])
         
         # Calcu
-        actor_loss = - self.critic_network(observations, actions).mean()
+        # actor_loss = - self.critic_network(observations, actions).mean()
+        actor_loss = - self.critic_target_network(observations, actions).mean()
 
         # Clear the actor gradients for back propagation
         self.actor_optimizer.zero_grad()
@@ -137,7 +138,7 @@ class MADDPG:
         self.critic_optimizer.step()
 
         # Update both networks
-        # self._soft_update_target_network()
+        self._soft_update_target_network()
 
         # Save the model
         if self.train_step > 0 and self.train_step % self.args.save_rate == 0:
@@ -151,9 +152,7 @@ class MADDPG:
         """
         Save the model
         :param  train_step  current training step, used for naming
-        """
-        num = str(train_step // self.args.save_rate)
-        
+        """        
         # print(f"Saving model at timestep {train_step} at {self.agent_path}/actor_params.pkl, {self.agent_path}/critic_parms.pkl")
 
         #Create the directory structure for storing models

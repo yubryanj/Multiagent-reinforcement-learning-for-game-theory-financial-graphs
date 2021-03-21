@@ -38,7 +38,7 @@ class Agent:
 
             # Concert the action tensor into an np array
             action = pi.cpu().numpy()
-
+            
             # if not evaluate:
             #     # Generate some noise
             #     noise = noise_rate + self.args.high_action * np.random.randn(*action.shape)

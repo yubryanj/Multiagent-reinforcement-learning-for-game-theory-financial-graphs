@@ -24,9 +24,9 @@ class Runner:
     def _init_agents(self):
         agents = []
         # Share the same agent and critic; Move below if a different agent/critic per
-        agent = Agent(0, self.args)
         
         for i in range(self.args.n_agents):
+            agent = Agent(i, self.args)
             agents.append(agent)
         return agents
 
