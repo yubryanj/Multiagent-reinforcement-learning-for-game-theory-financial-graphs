@@ -39,7 +39,8 @@ class Runner:
         for time_step in tqdm(range(self.args.time_steps)):
             
             # reset the environment and get the first sample
-            obs, _ = self.env.reset()
+            if time_step % self.args.max_episode_len == 0:
+                obs, _ = self.env.reset()
 
             # observations would be modified after taking a "step" if a deep copy is not made
             initial_obs = copy.deepcopy(obs)

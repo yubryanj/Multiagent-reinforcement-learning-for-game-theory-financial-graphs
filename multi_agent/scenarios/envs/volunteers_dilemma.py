@@ -81,12 +81,16 @@ class Volunteers_dilemma(gym.Env):
     """
     Return the requested agent's reward
     """
+    position_old = deepcopy(self.position)
+
     previous_positions = self.clear()
 
     # Allocate the cash as the agents requested
     self.take_action(actions)
 
     new_positions = self.clear()
+
+    self.position = deepcopy(position_old)
 
     change_in_position = new_positions - previous_positions
 
@@ -184,9 +188,6 @@ class Volunteers_dilemma(gym.Env):
           position += np.sum(adjacency_matrix, axis=0)
           adjacency_matrix[agent,:] = 0
           adjacency_matrix[:, agent] = 0
-              
-        # if position[agent] < 0:
-            # adjacency_matrix[agent, : ] = 0
 
     position += np.sum(adjacency_matrix, axis=0)
     position -= np.sum(adjacency_matrix, axis=1)
@@ -209,7 +210,6 @@ class Volunteers_dilemma(gym.Env):
 
 
   def get_observation_size(self):
-    # return self.adjacency_matrix.size + self.position.size
     obs = self.get_observation()
     return obs.shape[1]
 
