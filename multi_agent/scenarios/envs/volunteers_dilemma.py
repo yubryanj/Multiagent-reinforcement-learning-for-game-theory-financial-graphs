@@ -51,13 +51,12 @@ class Volunteers_dilemma(gym.Env):
     done = self._determine_if_episode_is_done()
                     
     # Retrieve the observations of the resetted environment
-    rewards       = self.compute_reward(actions)
-    observations  = []
+    rewards, info   = self.compute_reward(actions)
+    observations    = []
     
     for agent_identifier in range(self.args.n_agents):
-      observations.append(self.get_observation(agent_identifier))
+      observations.append(self.get_observation(agent_identifier, reset=False, previous_actions=actions))
 
-    info = self.get_info()
 
     return observations, rewards, done, info
 
@@ -94,9 +93,11 @@ class Volunteers_dilemma(gym.Env):
 
     change_in_position = new_positions - previous_positions
 
-    reward =  change_in_position.reshape(-1,1)
+    reward =  change_in_position.reshape(-1,1)[:self.args.n_agents]
 
-    return reward
+    info = { 'ending_net_positions': new_positions}
+
+    return reward, info
             
 
   def reset(self):
@@ -117,19 +118,12 @@ class Volunteers_dilemma(gym.Env):
     observations = []
     
     for agent_identifier in range(self.args.n_agents):
-      observations.append(self.get_observation(agent_identifier))
+      observations.append(self.get_observation(agent_identifier, reset=True))
 
-    info = self.get_info()
+    info = {'ending_net_positions':self.clear()}
 
     return observations, info
 
-
-  def get_info(self):
-        info = {
-          'cleared_positions': self.clear(),
-        }
-
-        return info
 
 
   def render(self, mode='human'):
@@ -195,22 +189,25 @@ class Volunteers_dilemma(gym.Env):
     return position
 
 
-  def get_observation(self, agent_identifier=None):
+  def get_observation(self, agent_identifier=None, reset=False, previous_actions=None):
     """
     Generates the observation matrix displayed to the agent
     :param    None
     :output   np.array  [self.number_of_banks + 1, self.number_of_banks] 
                         matrix stacking the debt and cash position of each agent
     """
-    # Full information
-    # return np.hstack((self.adjacency_matrix.reshape(1,-1), self.position.reshape(1,-1)))
     observation = self.clear().reshape(1,-1)
-    # observation = self.position.reshape(1,-1)
+    
+    if reset:
+      observation = np.hstack((observation,np.zeros((1,2))))
+    if not reset and previous_actions is not None:
+      observation = np.hstack((observation, np.array(previous_actions).reshape(1,-1)))
+
     return observation
 
 
   def get_observation_size(self):
-    obs = self.get_observation()
+    obs = self.get_observation(reset=True)
     return obs.shape[1]
 
 

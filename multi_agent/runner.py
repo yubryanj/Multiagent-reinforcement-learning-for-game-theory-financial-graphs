@@ -1,10 +1,15 @@
 from tqdm import tqdm
 from agent import Agent
 from common.replay_buffer import Buffer
-import torch
 import os
-import numpy as np
 import copy
+
+import torch
+torch.manual_seed(0)
+import random
+random.seed(0)
+import numpy as np
+np.random.seed(0)
 
 
 class Runner:
@@ -34,12 +39,13 @@ class Runner:
     def run(self):
         returns = []
         average_net_position = float('-inf')
+        done = True
 
         # Run this loop repeatedly
         for time_step in tqdm(range(self.args.time_steps)):
             
             # reset the environment and get the first sample
-            if time_step % self.args.max_episode_len == 0:
+            if done:
                 obs, _ = self.env.reset()
 
             # observations would be modified after taking a "step" if a deep copy is not made
@@ -50,7 +56,7 @@ class Runner:
                 # For each agent
                 for agent_id, agent in enumerate(self.agents):
                     # select an action
-                    action = agent.select_action(obs[agent_id], self.noise, self.epsilon, evaluate=False)
+                    action, _ = agent.select_action(obs[agent_id], self.noise, self.epsilon, evaluate=False)
                     # store the action 
                     actions.append(action)
 
@@ -99,24 +105,25 @@ class Runner:
         # Allocate lists to store results from info
         positions = []
         system_configurations = []
+        done = True
 
         for episode in range(self.args.evaluate_episodes):
 
-            # reset the environment
+            done = False;
             s, info = self.env.reset()
 
             system_configurations.append({'initial_configurations':copy.deepcopy(info)})
 
-            # Obtain the results for a series of trainings
-            for time_step in range(self.args.evaluate_episode_len):
-
+            while not done:
+                pre_clipped_actions = []
                 actions = []
-                
+
                 # Zero out the gradients
                 with torch.no_grad():
                     for agent_id, agent in enumerate(self.agents):
                         # Select the action for the given agent
-                        action = agent.select_action(s[agent_id], 0, 0, evaluate=True)
+                        action, pre_clipped_action = agent.select_action(s[agent_id], 0, 0, evaluate=True)
+                        pre_clipped_actions.append(pre_clipped_action)
                         actions.append(action)
                 
                 # Take the next action
@@ -127,12 +134,16 @@ class Runner:
 
                 # Store the action taken
                 system_configurations[-1]['action'] = copy.deepcopy(actions)
-                positions.append(info['cleared_positions'])
+                positions.append(info['ending_net_positions'])
                 
             # Store the cumulative rewards
             system_configurations[-1]['final_configurations'] = copy.deepcopy(info)
 
-        print(f'Average positions: {np.mean(positions,axis=0)}, total: {np.mean(np.sum(positions, axis=1))}')
+        # print(f'Average positions: {np.mean(positions,axis=0)}, total: {np.mean(np.sum(positions, axis=1))}')
+        print(f'Pre-Clipped Actions: {np.array(pre_clipped_actions).reshape(1,-1)}')
+        print(f'Actions: {np.array(actions).reshape(1,-1)}')
+        print(f'Rewards: {rewards.reshape(1,-1)}')
+        print(f'Ending net Positions: {info["ending_net_positions"]}')
 
         np.save(f"{self.args.save_dir}/evaluation-data", system_configurations)
 
