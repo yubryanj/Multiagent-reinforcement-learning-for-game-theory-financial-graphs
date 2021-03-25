@@ -14,6 +14,7 @@ class Actor(nn.Module):
         self.fc1 = nn.Linear(args.obs_shape[agent_identifier], 64)
         self.fc2 = nn.Linear(64,64)
         self.fc3 = nn.Linear(64,64)
+        # self.action_out = nn.Linear(64, args.action_shape[agent_identifier])
         self.action_out = nn.Linear(64, args.action_shape[agent_identifier])
 
     def forward(self, x):
@@ -25,6 +26,7 @@ class Actor(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         action = self.action_out(x)
+        action = torch.sigmoid(action)
 
         # action = torch.clamp(action, 0, 1)
         return action

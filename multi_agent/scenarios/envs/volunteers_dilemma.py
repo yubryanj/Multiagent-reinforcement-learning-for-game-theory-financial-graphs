@@ -199,7 +199,7 @@ class Volunteers_dilemma(gym.Env):
     observation = self.clear().reshape(1,-1)
     
     if reset:
-      observation = np.hstack((observation,np.zeros((1,2))))
+      observation = np.hstack((observation,np.zeros((1,self.args.n_agents))))
     if not reset and previous_actions is not None:
       observation = np.hstack((observation, np.array(previous_actions).reshape(1,-1)))
 

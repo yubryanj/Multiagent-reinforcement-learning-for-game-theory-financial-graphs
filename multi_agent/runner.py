@@ -5,7 +5,7 @@ import os
 import copy
 
 import torch
-torch.manual_seed(0)
+torch.manual_seed(4)
 import random
 random.seed(0)
 import numpy as np
@@ -56,7 +56,7 @@ class Runner:
                 # For each agent
                 for agent_id, agent in enumerate(self.agents):
                     # select an action
-                    action, _ = agent.select_action(obs[agent_id], self.noise, self.epsilon, evaluate=False)
+                    action = agent.select_action(obs[agent_id], self.noise, self.epsilon, evaluate=False)
                     # store the action 
                     actions.append(action)
 
@@ -99,8 +99,6 @@ class Runner:
             # np.save(f'{self.args.save_dir}/returns.pkl', returns)
 
 
-
-
     def evaluate(self, args=None):
         # Allocate lists to store results from info
         positions = []
@@ -115,15 +113,13 @@ class Runner:
             system_configurations.append({'initial_configurations':copy.deepcopy(info)})
 
             while not done:
-                pre_clipped_actions = []
                 actions = []
 
                 # Zero out the gradients
                 with torch.no_grad():
                     for agent_id, agent in enumerate(self.agents):
                         # Select the action for the given agent
-                        action, pre_clipped_action = agent.select_action(s[agent_id], 0, 0, evaluate=True)
-                        pre_clipped_actions.append(pre_clipped_action)
+                        action = agent.select_action(s[agent_id], 0, 0, evaluate=True)
                         actions.append(action)
                 
                 # Take the next action
@@ -140,7 +136,6 @@ class Runner:
             system_configurations[-1]['final_configurations'] = copy.deepcopy(info)
 
         # print(f'Average positions: {np.mean(positions,axis=0)}, total: {np.mean(np.sum(positions, axis=1))}')
-        print(f'Pre-Clipped Actions: {np.array(pre_clipped_actions).reshape(1,-1)}')
         print(f'Actions: {np.array(actions).reshape(1,-1)}')
         print(f'Rewards: {rewards.reshape(1,-1)}')
         print(f'Ending net Positions: {info["ending_net_positions"]}')

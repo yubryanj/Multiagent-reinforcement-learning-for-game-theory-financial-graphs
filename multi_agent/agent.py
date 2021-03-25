@@ -26,7 +26,6 @@ class Agent:
         # Take the epsilon step
         if np.random.uniform() < epsilon and not evaluate:
             action = np.random.uniform(self.args.low_action, self.args.high_action, self.args.action_shape[self.agent_id]).reshape(1,-1)
-            pre_clipped_action = action
 
         else:
             # Take the greedy step  
@@ -40,8 +39,6 @@ class Agent:
             # Concert the action tensor into an np array
             action = pi.cpu().numpy()
 
-            pre_clipped_action = action.copy()
-
             # if not evaluate:
             #     # Generate some noise
             #     noise = noise_rate + self.args.high_action * np.random.randn(*action.shape)
@@ -52,7 +49,7 @@ class Agent:
             # Clip the action to the acceptable bounds
             action = np.clip(action, self.args.low_action, self.args.high_action)
 
-        return action.copy(), pre_clipped_action
+        return action.copy()
 
 
     def learn(self, transitions, other_agents):
