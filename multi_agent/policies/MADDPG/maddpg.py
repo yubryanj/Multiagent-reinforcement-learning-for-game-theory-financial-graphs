@@ -102,7 +102,7 @@ class MADDPG:
                     next_action.append(other_agents[index].policy.actor_target_network(next_observations[agent_identifier]))
                     index += 1
             # Calculate the next Q Value and remove the graph from the tensor
-            next_q_value = self.critic_target_network(next_observations, next_action).detach()
+            # next_q_value = self.critic_target_network(next_observations, next_action).detach()
 
             # Calculate the target q value for the gradient update as [ immediate reward + discount * future_reward ]; remove graph from the tensor
             # target_q = (rewards.unsqueeze(1) + self.args.gamma * next_q_value).detach()
@@ -117,10 +117,12 @@ class MADDPG:
 
         # Actor loss
         # Calculate the actions of the agent using the current observations
-        actions[self.agent_identifer] = self.actor_network(observations[self.agent_identifer])
+        # actions[self.agent_identifer] = self.actor_network(observations[self.agent_identifer])
+
+        # actions = [np.random.normal(action[0].detach(),action[1].detach()) for action in actions[0]]        
+        # actions = [torch.tensor(action).reshape(1,1) for action in actions]
         
         # Calcu
-        # actor_loss = - self.critic_network(observations, actions).mean()
         actor_loss = - self.critic_target_network(observations, actions).mean()
 
         # Clear the actor gradients for back propagation

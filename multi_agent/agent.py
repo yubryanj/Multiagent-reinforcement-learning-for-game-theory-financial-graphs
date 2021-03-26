@@ -34,7 +34,7 @@ class Agent:
             inputs = torch.tensor( observation, dtype=torch.float32).unsqueeze(0)
 
             # Gets the action from the actor given the observations
-            pi = self.policy.actor_network(inputs).squeeze(0)
+            pi = self.policy.actor_network(inputs)
 
             # Concert the action tensor into an np array
             action = pi.cpu().numpy()

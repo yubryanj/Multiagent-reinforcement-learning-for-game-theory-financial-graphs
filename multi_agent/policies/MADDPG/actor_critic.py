@@ -11,24 +11,38 @@ class Actor(nn.Module):
         """
         super(Actor, self).__init__()
         self.max_action = args.high_action
-        self.fc1 = nn.Linear(args.obs_shape[agent_identifier], 64)
-        self.fc2 = nn.Linear(64,64)
-        self.fc3 = nn.Linear(64,64)
-        # self.action_out = nn.Linear(64, args.action_shape[agent_identifier])
-        self.action_out = nn.Linear(64, args.action_shape[agent_identifier])
+        self.mean1 = nn.Linear(args.obs_shape[agent_identifier], 64)
+        self.mean2 = nn.Linear(64,64)
+        self.mean3 = nn.Linear(64,64)
+        self.mean = nn.Linear(64, 1)
+
+
+        self.var1 = nn.Linear(args.obs_shape[agent_identifier], 64)
+        self.var2 = nn.Linear(64,64)
+        self.var3 = nn.Linear(64,64)
+        self.variance = nn.Linear(64, 1)
+
 
     def forward(self, x):
         """
         Conduct a forward pass of the model
         :param  x   input of the model
         """
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        action = self.action_out(x)
+        mean = F.relu(self.mean1(x))
+        mean = F.relu(self.mean2(mean))
+        mean = F.relu(self.mean3(mean))
+        mu = self.mean(mean)
+
+        var = F.relu(self.var1(x))
+        var = F.relu(self.var2(var))
+        var = F.relu(self.var3(var))
+        std = self.variance(var)
+        std = torch.exp(std / 2)
+
+        q = torch.distributions.normal.Normal(mu, std)
+        action = q.rsample()
         action = torch.sigmoid(action)
 
-        # action = torch.clamp(action, 0, 1)
         return action
 
 
@@ -56,7 +70,7 @@ class Critic(nn.Module):
         #     action[i] /= self.max_action
 
         # Concatenate the action vector 
-        action = torch.cat(action, dim=1)
+        action = torch.cat(action, dim=1).reshape(-1,1)
         x = torch.cat([state, action], dim=1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
