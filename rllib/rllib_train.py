@@ -11,20 +11,23 @@ from custom_model import Custom_Model
 from env import Volunteers_Dilemma
 
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--run", type=str, default="PG")
 parser.add_argument("--as-test", action="store_true")
+parser.add_argument("--local-mode", action="store_true")
+parser.add_argument("--n-agents", type=int, default=0)
+parser.add_argument("--n-workers", type=int, default=1)
+parser.add_argument("--n-gpus", type=int, default=1)
 parser.add_argument("--stop-iters", type=int, default=1000)
-parser.add_argument("--stop-reward", type=float, default=5)
+parser.add_argument("--stop-reward", type=float, default=6)
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    ray.init(local_mode=True)
-    # ray.init()
+    #ray.init(local_mode=True)
+    ray.init()
 
     env_config = {
-            "n_agents": 1,
+            "n_agents": args.n_agents,
             "adjacency_matrix": [[0.0, 0.0, 0.0],
                                 [0.0, 0.0, 0.0],
                                 [15.0, 15.0, 0.0]],
@@ -46,22 +49,22 @@ if __name__ == "__main__":
         "multiagent": {
             "policies": {
                 "policy_0": (None, obs_space, action_space, {"framework": "torch"}),
-                # "policy_1": (None, obs_space, action_space, {"framework": "torch",}),
+                "policy_1": (None, obs_space, action_space, {"framework": "torch"}),
             },
             "policy_mapping_fn": (lambda agent_id: f"policy_{agent_id}"),
         },
         "model":{"custom_model": "my_torch_model",
                 "custom_model_config": {},
         },
-        "num_workers": 1,  # parallelism
+        "num_workers": args.n_workers,  # parallelism
         "framework": "torch",
-        "num_gpus": 0,
-        "lr": tune.grid_search([1e-4,1e-5,1e-6,1e-7]),
+        "num_gpus": args.n_gpus,
+        "lr": tune.grid_search([ 1e-4,1e-5,1e-6,1e-7]),
     }
 
     stop = {
         "training_iteration"    : args.stop_iters,
-        "episode_reward_mean"   : 6.0 * 2,
+        "episode_reward_mean"   : args.stop_reward * args.n_workers,
     }
 
     results = tune.run( args.run, 
