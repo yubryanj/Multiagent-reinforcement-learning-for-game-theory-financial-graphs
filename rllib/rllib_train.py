@@ -1,12 +1,3 @@
-"""Example of a custom gym environment and model. Run this for a demo.
-
-This example shows:
-  - using a custom environment
-  - using a custom model
-  - using Tune for grid search
-
-You can visualize experiment results in ~/ray_results using TensorBoard.
-"""
 import argparse
 import gym
 from gym.spaces import Discrete, Box
@@ -18,12 +9,7 @@ from copy import deepcopy
 import ray
 from ray import tune
 from ray.tune import grid_search
-from ray.rllib.env.env_context import EnvContext
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
-from ray.rllib.examples.env.mock_env import MockEnv
-from ray.rllib.models import ModelCatalog
-from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
-from ray.rllib.models.torch.fcnet import FullyConnectedNetwork as TorchFC
 from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.test_utils import check_learning_achieved
 
@@ -32,12 +18,11 @@ torch, nn = try_import_torch()
 parser = argparse.ArgumentParser()
 parser.add_argument("--run", type=str, default="PG")
 parser.add_argument("--as-test", action="store_true")
-parser.add_argument("--stop-iters", type=int, default=50)
-parser.add_argument("--stop-timesteps", type=int, default=100000)
-parser.add_argument("--stop-reward", type=float, default=0.1)
+parser.add_argument("--stop-iters", type=int, default=1000)
+parser.add_argument("--stop-reward", type=float, default=5)
 
 
-class BasicMultiAgent(MultiAgentEnv):
+class Volunteers_Dilemma(MultiAgentEnv):
     """Env of N independent agents, each of which exits after 25 steps."""
 
     def __init__(self, config):
@@ -195,45 +180,51 @@ class BasicMultiAgent(MultiAgentEnv):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    ray.init(local_mode=True)
+    # ray.init(local_mode=True)
+    ray.init()
 
     env_config = {
-            "n_agents": 2,
+            "n_agents": 1,
             "adjacency_matrix": [[0.0, 0.0, 0.0],
                                 [0.0, 0.0, 0.0],
                                 [15.0, 15.0, 0.0]],
             "position" :        [20.0, 20.0, 29.0],
             "haircut_multiplier" : 0.50,
-            "episode_length" : 5,
+            "episode_length" : 1,
         }
 
-    env = BasicMultiAgent(env_config)
+    env = Volunteers_Dilemma(env_config)
     obs_space = env.observation_space
     action_space = env.action_space
 
     config = {
-        "env": BasicMultiAgent,  
+        "env": Volunteers_Dilemma,  
         "env_config": env_config,
-        # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
         "multiagent": {
             "policies": {
-                "pg_policy": (None, obs_space, action_space, {"framework": "torch",}),            
+                "policy_0": (None, obs_space, action_space, {"framework": "torch",}),
+                "policy_1": (None, obs_space, action_space, {"framework": "torch",}),
             },
-            "policy_mapping_fn": (
-                lambda agent_id: "pg_policy"),
+            "policy_mapping_fn": (lambda agent_id: f"policy_{agent_id}"),
         },
-        "num_workers": 1,  # parallelism
+        "num_workers": 4,  # parallelism
         "framework": "torch",
-        "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+        "num_gpus": 1,
+        "lr": tune.grid_search([1e-4,1e-5,1e-6,1e-7]),
     }
 
     stop = {
-        "training_iteration": args.stop_iters,
-        "timesteps_total": args.stop_timesteps,
-        "episode_reward_mean": args.stop_reward,
+        "training_iteration"    : args.stop_iters,
+        "episode_reward_mean"   : 6.2,
     }
 
-    results = tune.run(args.run, config=config, stop=stop)
+    results = tune.run( args.run, 
+                        config=config, 
+                        stop=stop, 
+                        local_dir="./results", 
+                        log_to_file="results.log",
+
+                    )
 
     if args.as_test:
         check_learning_achieved(results, args.stop_reward)
