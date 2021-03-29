@@ -147,6 +147,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 observation  = observation + [0]
         if not reset and previous_actions is not None:
             for action in previous_actions:
+                action = np.clip(action,0,1)
                 observation = observation + [action]
 
         return observation
