@@ -17,14 +17,13 @@ parser.add_argument("--as-test", action="store_true")
 parser.add_argument("--local-mode", action="store_true")
 parser.add_argument("--n-agents", type=int, default=0)
 parser.add_argument("--n-workers", type=int, default=1)
-parser.add_argument("--n-gpus", type=int, default=1)
+parser.add_argument("--n-gpus", type=int, default=0)
 parser.add_argument("--stop-iters", type=int, default=1000)
 parser.add_argument("--stop-reward", type=float, default=6)
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    #ray.init(local_mode=True)
-    ray.init()
+    ray.init(local_mode = args.local_mode)
 
     env_config = {
             "n_agents": args.n_agents,
