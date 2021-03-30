@@ -15,14 +15,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--run", type=str, default="PG")
 parser.add_argument("--as-test", action="store_true")
 parser.add_argument("--local-mode", action="store_true")
-parser.add_argument("--n-agents", type=int, default=0)
+parser.add_argument("--n-agents", type=int, default=1)
 parser.add_argument("--n-workers", type=int, default=1)
 parser.add_argument("--n-gpus", type=int, default=0)
-parser.add_argument("--stop-iters", type=int, default=1000)
+parser.add_argument("--stop-iters", type=int, default=300)
 parser.add_argument("--stop-reward", type=float, default=6)
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    args.log_dir = f"./results/{args.n_agents}_agents/{args.run}"
     ray.init(local_mode = args.local_mode)
 
     env_config = {
@@ -58,7 +59,8 @@ if __name__ == "__main__":
         "num_workers": args.n_workers,  # parallelism
         "framework": "torch",
         "num_gpus": args.n_gpus,
-        "lr": tune.grid_search([ 1e-4,1e-5,1e-6,1e-7]),
+        "lr": tune.grid_search([1e-5,5e-5,1e-6,5e-6,1e-7]),
+        
     }
 
     stop = {
@@ -69,7 +71,7 @@ if __name__ == "__main__":
     results = tune.run( args.run, 
                         config=config, 
                         stop=stop, 
-                        local_dir="./results", 
+                        local_dir=args.log_dir, 
                         log_to_file="results.log",
 
                     )
