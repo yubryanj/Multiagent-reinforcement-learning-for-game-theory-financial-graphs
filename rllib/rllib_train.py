@@ -1,6 +1,5 @@
 import ray
 from ray import tune
-from ray.tune import grid_search
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.rllib.models import ModelCatalog
 
@@ -21,9 +20,10 @@ parser.add_argument("--n-agents",   type=int, default=1)
 parser.add_argument("--n-workers",  type=int, default=1)
 parser.add_argument("--n-gpus",     type=int, default=0)
 parser.add_argument("--stop-iters", type=int, default=300)
-parser.add_argument("--stop-reward", type=float, default=6)
+parser.add_argument("--checkpoint-frequency", type=int, default=1)
 parser.add_argument("--episode-length", type=int, default=1)
-parser.add_argument("--haircut-multiplier", type=int, default=0.50)
+parser.add_argument("--stop-reward", type=float, default=6.0)
+parser.add_argument("--haircut-multiplier", type=float, default=0.50)
 
 
 if __name__ == "__main__":
@@ -81,6 +81,8 @@ if __name__ == "__main__":
                         stop=stop, 
                         local_dir=args.log_dir, 
                         log_to_file="results.log",
+                        checkpoint_freq = args.checkpoint_frequency,
+                        checkpoint_at_end = True,
                     )
 
     if args.as_test:

@@ -15,6 +15,7 @@
                     "--episode-length","5",
                     "--stop-iters","5",
                     "--debug",
+                    "--checkpoint-frequency","1"
 
             ]
         }
