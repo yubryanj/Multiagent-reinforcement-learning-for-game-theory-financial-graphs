@@ -13,7 +13,7 @@
             "args":["--run","PPO",
                     "--local-mode",
                     "--episode-length","5",
-                    "--stop-iters","100",
+                    "--stop-iters","5",
                     "--debug",
 
             ]

@@ -36,6 +36,7 @@ class Custom_Model(TorchModelV2, nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         action = self.action(x)
+        action = torch.sigmoid(action)
 
         return action, []
 
