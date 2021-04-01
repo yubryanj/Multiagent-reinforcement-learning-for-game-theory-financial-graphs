@@ -8,9 +8,15 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "/Volumes/GoogleDrive/My Drive/Education/Eidgenössische Technische Hochschule Zürich/Masters Thesis/MARL-Game-Theory/rllib/rllib_train.py",
+            "program": "/home/bryayu/MARL-Game-Theory/rllib/rllib_train.py",
             "console": "integratedTerminal",
-            "args":["--run","PPO"]
+            "args":["--run","PPO",
+                    "--local-mode",
+                    "--episode-length","5",
+                    "--stop-iters","100",
+                    "--debug",
+
+            ]
         }
     ]
 }
