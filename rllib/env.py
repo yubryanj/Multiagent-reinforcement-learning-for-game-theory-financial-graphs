@@ -3,11 +3,12 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv
 import numpy as np
 from copy import deepcopy
 
+from utils import generate_case_1
 
 
 
 class Volunteers_Dilemma(MultiAgentEnv):
-    """Env of N independent agents, each of which exits after 25 steps."""
+    """Env of N independent agents."""
 
     def __init__(self, config):
         self.n_agents = config['n_agents']
@@ -23,12 +24,16 @@ class Volunteers_Dilemma(MultiAgentEnv):
                                                 shape = (self.get_observation_size(),),
                                                 dtype = np.float32
                                                 )
-        self.action_space = gym.spaces.Box( low   = 0,\
-                                            high  = 1,\
-                                            shape = (1,), 
-                                            dtype = np.float32
-                                            )
 
+        if config['discrete']:
+            self.action_space = gym.spaces.Discrete(config['max_system_value'])
+        else:
+            self.action_space = gym.spaces.Box( low   = 0,\
+                                                high  = 1,\
+                                                shape = (1,), 
+                                                dtype = np.float32
+                                                )
+                                            
         self.dones = set()
         self.timestep = 0
         self.resetted = False
@@ -75,7 +80,11 @@ class Volunteers_Dilemma(MultiAgentEnv):
         """    
 
         for agent_identifier in range(self.n_agents):
-            transferred_amount = self.position[agent_identifier] * actions[agent_identifier]
+
+            if self.config['discrete']:
+                actions[agent_identifier] /= 100
+
+            transferred_amount = self.position[agent_identifier] * actions[agent_identifier] 
             self.position[self.distressed_node] += transferred_amount
             self.position[agent_identifier] -= transferred_amount
 

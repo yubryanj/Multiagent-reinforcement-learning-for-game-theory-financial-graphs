@@ -10,12 +10,19 @@
             "request": "launch",
             "program": "/home/bryayu/MARL-Game-Theory/rllib/rllib_train.py",
             "console": "integratedTerminal",
-            "args":["--run","PPO",
+            "args":[
+                    // "--run","DQN",
+                    // "--discrete",
+                    
+                    "--run","PPO",
+                    
                     "--local-mode",
-                    "--episode-length","5",
+                    "--episode-length","1",
                     "--stop-iters","5",
                     "--debug",
-                    "--checkpoint-frequency","1"
+                    "--checkpoint-frequency","1",
+                    "--n-samples", "1",
+
 
             ]
         }
