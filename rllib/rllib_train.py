@@ -2,13 +2,11 @@ import ray
 from ray import tune
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.rllib.models import ModelCatalog
-from ray.rllib.models.torch.torch_action_dist import TorchDiagGaussian, TorchSquashedGaussian, TorchDirichlet, TorchDeterministic
 from ray.rllib.agents.ppo import PPOTrainer
 
 
 import argparse
-
-from custom_model import Custom_Model
+from custom_model import Custom_Model, Discrete_action_model
 from custom_callback import MyCallbacks
 from env import Volunteers_Dilemma
 from utils import generate_graph
@@ -48,7 +46,7 @@ if __name__ == "__main__":
             "haircut_multiplier": args.haircut_multiplier,
             "episode_length":   args.episode_length,
             'discrete':         args.discrete,
-            'max_system_cash':  100,
+            'max_system_value':  100,
             
         }
 
@@ -56,8 +54,8 @@ if __name__ == "__main__":
     obs_space = env.observation_space
     action_space = env.action_space
 
-    ModelCatalog.register_custom_action_dist("TorchDiagGaussian", TorchDiagGaussian)
     ModelCatalog.register_custom_model("my_torch_model", Custom_Model)
+    ModelCatalog.register_custom_model("discrete_action_model", Discrete_action_model)
 
     config = {
         "env": Volunteers_Dilemma,  
@@ -74,17 +72,24 @@ if __name__ == "__main__":
         "num_gpus": args.n_gpus,
         "lr": 1e-3,
         "callbacks": MyCallbacks,  
-        
+        # "log_level": "DEBUG",
     }
 
     # Discrete action space
     if args.discrete:
         config['exploration_config']= {
                 "type": "EpsilonGreedy",
-                "initial_epsilon": 1.0,
+                "initial_epsilon": 1.0, # Need to update the epsilon greedy component for action masking
                 "final_epsilon": 0.05,
-                "epsilon_timesteps": 100000, 
+                "epsilon_timesteps": 1e5, 
             }
+        config['model'] = {  
+                            "custom_model": "discrete_action_model",
+                            # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
+
+        }
+        config['hiddens'] = []
+        config['dueling'] = False
     else:
     # Continuous action space
         config["model"] = { "custom_model": "my_torch_model",
@@ -111,7 +116,6 @@ if __name__ == "__main__":
                         checkpoint_freq = args.checkpoint_frequency,
                         checkpoint_at_end = True,
                         num_samples = args.n_samples,
-                        # restore='results/discrete_True/2_agents/DQN/episode_length_1/DQN/DQN_Volunteers_Dilemma_d7cce_00000_0_2021-04-14_09-34-27/checkpoint_939/checkpoint-939',
                     )
 
     if args.as_test:

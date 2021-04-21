@@ -19,14 +19,17 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.config = config
         self.distressed_node = 2
 
-        self.observation_space = gym.spaces.Box(low   = -100,
-                                                high  = 100,
-                                                shape = (self.get_observation_size(),),
-                                                dtype = np.float32
-                                                )
-
         if config['discrete']:
             self.action_space = gym.spaces.Discrete(config['max_system_value'])
+
+            self.observation_space = gym.spaces.Dict({
+                                        "action_mask": gym.spaces.Box(0, 1, shape=(self.action_space.n, )),
+                                        "avail_actions": gym.spaces.Box(-1, 1, shape=(self.action_space.n, )),
+                                        "real_obs": gym.spaces.Box(-config['max_system_value'],
+                                                                    config['max_system_value'],
+                                                                    shape=(self.get_observation_size(),)
+                                                                    )
+            })
         else:
             self.action_space = gym.spaces.Box( low   = 0,\
                                                 high  = 1,\
@@ -34,6 +37,11 @@ class Volunteers_Dilemma(MultiAgentEnv):
                                                 dtype = np.float32
                                                 )
                                             
+            self.observation_space = gym.spaces.Box(low   = -100,
+                                                    high  = 100,
+                                                    shape = (self.get_observation_size(),),
+                                                    dtype = np.float32
+                                                    )
         self.dones = set()
         self.timestep = 0
         self.resetted = False
@@ -149,6 +157,9 @@ class Volunteers_Dilemma(MultiAgentEnv):
         :output   np.array  [self.number_of_banks + 1, self.number_of_banks] 
                             matrix stacking the debt and cash position of each agent
         """
+
+        observation_dict = {}
+
         observation = self.clear().flatten().tolist()
         
         if reset:
@@ -159,12 +170,19 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 action = np.clip(action,0,1)
                 observation = observation + [action]
 
-        return observation
+        observation_dict['real_obs'] = observation
+        observation_dict['action_mask'] = np.array([0.] * self.action_space.n)
+        observation_dict['avail_actions'] = np.array([0.] * self.action_space.n)
+
+        # Mask all actions outside of current position
+        observation_dict.get('action_mask')[:int(self.position[agent_identifier])] = 1
+
+        return observation_dict
 
 
     def get_observation_size(self):
-        obs = self.get_observation(reset=True)
-        return len(obs)
+        obs = self.get_observation(agent_identifier=0, reset=True)
+        return len(obs['real_obs'])
 
 
     def get_net_position(self, agent):
