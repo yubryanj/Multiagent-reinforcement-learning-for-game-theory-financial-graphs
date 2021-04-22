@@ -53,62 +53,7 @@ class Custom_Model(TorchModelV2, nn.Module):
         return torch.reshape(self.value(self._output), [-1])
 
 
-# class Discrete_action_model(TorchModelV2, nn.Module):
-
-#     def __init__(self,
-#                  obs_space,
-#                  action_space,
-#                  num_outputs,
-#                  model_config,
-#                  name,
-#                  true_obs_shape=(4, ),
-#                  **kw):
-#         TorchModelV2.__init__(self, obs_space, action_space, num_outputs,
-#                                model_config, name, **kw)
-#         nn.Module.__init__(self)
-
-#         true_obs_shape = 4
-
-#         self.layer1 = torch.nn.Linear(4, 128)
-#         self.layer2 = torch.nn.Linear(128, 128)
-#         self.layer3 = torch.nn.Linear(128, 128)
-#         self.action = torch.nn.Linear(128, num_outputs)
-        
-#         self.value = torch.nn.Linear(4, 1)
-
-#         self._output = None
-
-
-#         # self.action_embed_model = FullyConnectedNetwork(
-#         #     Box(-1, 1, shape=true_obs_shape), action_space, num_outputs,
-#         #     model_config, name + "_action_embed")
-
-#     def forward(self, input_dict, state, seq_lens):
-#         # Extract the available actions tensor from the observation.
-#         action_mask = input_dict["obs"]["action_mask"]
-
-#         # Compute the predicted action embedding
-#         # action_embed, _ = self.action_embed_model({"obs": input_dict["obs"]["real_obs"]})
-
-
-#         self._output = input_dict['obs']['real_obs']
-#         x = self.layer1(self._output)
-#         x = self.layer2(x)
-#         x = self.layer3(x)
-#         action = self.action(x)
-
-#         inf_mask = torch.clamp(torch.log(action_mask),FLOAT_MIN, FLOAT_MAX)
-
-#         action_logits = action + inf_mask
-        
-#         return action_logits, state
-
-#     def value_function(self):
-#         return torch.reshape(self.value(self._output), [-1])
-
-#         # return self.action_embed_model.value_function()
-
-class Discrete_action_model(TorchModelV2):
+class Discrete_action_model_with_masking(TorchModelV2):
 
     def __init__(self, obs_space: gym.spaces.Space,
                  action_space: gym.spaces.Space, num_outputs: int,

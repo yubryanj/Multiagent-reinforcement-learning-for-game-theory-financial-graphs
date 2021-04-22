@@ -3,7 +3,7 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv
 import numpy as np
 from copy import deepcopy
 
-from utils import generate_case_1
+from utils import generate_case_1, generate_graph
 
 
 
@@ -11,13 +11,18 @@ class Volunteers_Dilemma(MultiAgentEnv):
     """Env of N independent agents."""
 
     def __init__(self, config):
+        # Generalize the graph for any bank being in distress
+
         self.n_agents = config['n_agents']
         self.haircut_multiplier = config['haircut_multiplier']
-        self.position  = np.asarray(config['position'])
-        self.adjacency_matrix = np.asarray(config['adjacency_matrix'])
         self.episode_length = config['episode_length']
         self.config = config
         self.distressed_node = 2
+
+
+        # self.position  = np.asarray(config['position'])
+        # self.adjacency_matrix = np.asarray(config['adjacency_matrix'])
+        self.adjacency_matrix, self.position = generate_graph(debug = config.get('debug'))
 
         if config['discrete']:
             self.action_space = gym.spaces.Discrete(config['max_system_value'])
@@ -54,13 +59,18 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.timestep =0 
 
         # Reset the environment
-        self.adjacency_matrix = np.asarray(self.adjacency_matrix)
-        self.position = np.asarray(self.position)
-        
+        self.adjacency_matrix, self.position = generate_graph(debug = self.config.get('debug'))
+        # self.adjacency_matrix = np.asarray(self.adjacency_matrix)
+        # self.position = np.asarray(self.position)
+
+        system_value = self.clear()
+
         # Retrieve the observations of the resetted environment        
         observations = {}
+        info ={}
         for agent_identifier in range(self.n_agents):
             observations[agent_identifier] = self.get_observation(agent_identifier, reset=True)
+            info[agent_identifier] = system_value.sum()
 
         return observations
 
@@ -68,16 +78,24 @@ class Volunteers_Dilemma(MultiAgentEnv):
     def step(self, action_dict):
         # Increment the timestep counter
         self.timestep += 1
+
+        starting_system_value = self.clear().sum()
                         
         # Retrieve the observations of the resetted environment
-        rewards   = self.compute_reward(action_dict)
+        rewards, ending_system_value, new_positions = self.compute_reward(action_dict)
         
         observations    = {}
+        info = {}
         for agent_identifier in range(self.n_agents):
             observations[agent_identifier] = self.get_observation(agent_identifier, reset=False, previous_actions=action_dict)
+            info[agent_identifier] = {  
+                'starting_position' : self.position,
+                'adjacency_matrix' : self.adjacency_matrix,
+                'starting_system_value': starting_system_value,
+                'ending_system_value': ending_system_value
+                }
 
-        done = {"__all__" : self.timestep == self.episode_length }
-        info = {}
+        done = {"__all__" : self.timestep == self.episode_length}
 
         return observations, rewards, done, info
 
@@ -87,12 +105,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
         TODO: WRITE ME
         """    
 
-        for agent_identifier in range(self.n_agents):
+        for agent_identifier in actions:
 
             if self.config['discrete']:
-                actions[agent_identifier] /= 100
-
-            transferred_amount = self.position[agent_identifier] * actions[agent_identifier] 
+                transferred_amount = actions[agent_identifier]
+            else:
+                transferred_amount = self.position[agent_identifier] * actions[agent_identifier] 
             self.position[self.distressed_node] += transferred_amount
             self.position[agent_identifier] -= transferred_amount
 
@@ -114,11 +132,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
         rewards = {}
         for i in range(self.n_agents):
             rewards[i] = reward.flatten()[i]
-        
+
+        system_value = new_positions.sum()
         
         self.position = deepcopy(position_old)
 
-        return rewards
+        return rewards, system_value, new_positions
 
 
     def clear(self):
@@ -135,15 +154,18 @@ class Volunteers_Dilemma(MultiAgentEnv):
             net_position = self.get_net_position(agent)
 
             if net_position < 0:
-                # Compute the net position
-                position[agent] -= np.sum(adjacency_matrix[agent, :])
-                adjacency_matrix[agent, : ] *= self.haircut_multiplier
+                # Compute the amount to redistribute to other nodes
+                discounted_position = position[agent] * self.haircut_multiplier
+                normalized_adjacencies = adjacency_matrix[agent]/(adjacency_matrix[agent].sum())
 
-                # Distribute the funds
-                position += np.sum(adjacency_matrix, axis=0)
-                adjacency_matrix[agent,:] = 0
-                adjacency_matrix[:, agent] = 0
+                amounts_to_redistribute = discounted_position * normalized_adjacencies
 
+                position += amounts_to_redistribute
+
+                adjacency_matrix[agent,:] = 0 
+                adjacency_matrix[:,agent] = 0
+                position[agent] = 0
+                
         position += np.sum(adjacency_matrix, axis=0)
         position -= np.sum(adjacency_matrix, axis=1)
 

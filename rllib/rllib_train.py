@@ -6,7 +6,7 @@ from ray.rllib.agents.ppo import PPOTrainer
 
 
 import argparse
-from custom_model import Custom_Model, Discrete_action_model
+from custom_model import Custom_Model, Discrete_action_model_with_masking
 from custom_callback import MyCallbacks
 from env import Volunteers_Dilemma
 from utils import generate_graph
@@ -37,16 +37,16 @@ if __name__ == "__main__":
         args.log_dir = f"/itet-stor/bryayu/net_scratch/results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
     ray.init(local_mode = args.local_mode)
 
-    adjacency_matrix, position = generate_graph(args.debug, args.n_agents)
+    # adjacency_matrix, position = generate_graph(args.debug)
 
     env_config = {
             "n_agents":         args.n_agents,
-            "adjacency_matrix": adjacency_matrix,
-            "position" :        position,
             "haircut_multiplier": args.haircut_multiplier,
             "episode_length":   args.episode_length,
             'discrete':         args.discrete,
             'max_system_value':  100,
+            # 'adjacency_matrix': adjacency_matrix,
+            # 'position':         position
             
         }
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     action_space = env.action_space
 
     ModelCatalog.register_custom_model("my_torch_model", Custom_Model)
-    ModelCatalog.register_custom_model("discrete_action_model", Discrete_action_model)
+    ModelCatalog.register_custom_model("discrete_action_model", Discrete_action_model_with_masking)
 
     config = {
         "env": Volunteers_Dilemma,  
@@ -106,7 +106,8 @@ if __name__ == "__main__":
     stop = {
         # "training_iteration"    : args.stop_iters,
         # "episode_reward_mean"   : args.stop_reward * args.n_agents,
-        "episode_reward_mean"   : 13.75,
+        # "episode_reward_mean"   : 15,
+        "custom_metrics/ending_system_value_mean" : 95
     }
 
     results = tune.run( args.run, 
