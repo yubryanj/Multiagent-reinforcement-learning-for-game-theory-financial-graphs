@@ -44,10 +44,7 @@ if __name__ == "__main__":
             "haircut_multiplier": args.haircut_multiplier,
             "episode_length":   args.episode_length,
             'discrete':         args.discrete,
-            'max_system_value':  100,
-            # 'adjacency_matrix': adjacency_matrix,
-            # 'position':         position
-            
+            'max_system_value':  100,            
         }
 
     env = Volunteers_Dilemma(env_config)
@@ -72,7 +69,6 @@ if __name__ == "__main__":
         "num_gpus": args.n_gpus,
         "lr": 1e-3,
         "callbacks": MyCallbacks,  
-        # "log_level": "DEBUG",
     }
 
     # Discrete action space
@@ -107,7 +103,8 @@ if __name__ == "__main__":
         # "training_iteration"    : args.stop_iters,
         # "episode_reward_mean"   : args.stop_reward * args.n_agents,
         # "episode_reward_mean"   : 15,
-        "custom_metrics/ending_system_value_mean" : 95
+        "custom_metrics/ending_system_value_mean" : 95,
+        'custom_metric/percentage_of_optimal_allocation' : .95,
     }
 
     results = tune.run( args.run, 

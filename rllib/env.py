@@ -79,6 +79,11 @@ class Volunteers_Dilemma(MultiAgentEnv):
         # Increment the timestep counter
         self.timestep += 1
 
+        # Compute the optimal action
+        optimal_allocation = np.sum(self.adjacency_matrix[-1]) - self.position[-1]
+        actual_allocation = action_dict[0]
+        percentage_of_optimal_allocation = np.clip(float(actual_allocation/optimal_allocation),0.0,1.0)
+
         starting_system_value = self.clear().sum()
                         
         # Retrieve the observations of the resetted environment
@@ -92,7 +97,10 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 'starting_position' : self.position,
                 'adjacency_matrix' : self.adjacency_matrix,
                 'starting_system_value': starting_system_value,
-                'ending_system_value': ending_system_value
+                'ending_system_value': ending_system_value,
+                'optimal_allocation': optimal_allocation,
+                'actual_allocation': actual_allocation,
+                'percentage_of_optimal_allocation': percentage_of_optimal_allocation,
                 }
 
         done = {"__all__" : self.timestep == self.episode_length}

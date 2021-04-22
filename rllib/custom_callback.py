@@ -13,10 +13,12 @@ class MyCallbacks(DefaultCallbacks):
     def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
                        policies: Dict[str, Policy], episode: MultiAgentEpisode,
                        env_index: int, **kwargs):
-        # episode.custom_metrics['starting_position'] =  episode.last_info_for(0)['starting_position']
-        # episode.custom_metrics['adjacency_matrix'] =  episode.last_info_for(0)['adjacency_matrix']
         episode.custom_metrics[f'starting_system_value'] = episode.last_info_for(0)['starting_system_value']
         episode.custom_metrics[f'ending_system_value'] = episode.last_info_for(0)['ending_system_value']
+        episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
+        episode.custom_metrics[f'actual_allocation'] = episode.last_info_for(0)['actual_allocation']
+        episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
+
         pass
 
     def on_postprocess_trajectory(
