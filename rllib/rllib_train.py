@@ -9,7 +9,7 @@ import argparse
 from custom_model import Custom_Model, Discrete_action_model_with_masking
 from custom_callback import MyCallbacks
 from env import Volunteers_Dilemma
-from utils import generate_graph
+from utils import generate_graph, custom_eval_function
 
 
 parser = argparse.ArgumentParser()
@@ -69,6 +69,24 @@ if __name__ == "__main__":
         "num_gpus": args.n_gpus,
         "lr": 1e-3,
         "callbacks": MyCallbacks,  
+
+        # Evaluation
+        "evaluation_num_workers": 2,
+
+        # Optional custom eval function.
+        "custom_eval_function": custom_eval_function,
+
+        # Enable evaluation, once per training iteration.
+        "evaluation_interval": 1,
+
+        # Run 10 episodes each time evaluation runs.
+        "evaluation_num_episodes": 1,
+
+        # Override the env config for evaluation.
+        "evaluation_config": {
+            "env_config": {},
+            "explore": False
+        },
     }
 
     # Discrete action space
@@ -103,8 +121,8 @@ if __name__ == "__main__":
         # "training_iteration"    : args.stop_iters,
         # "episode_reward_mean"   : args.stop_reward * args.n_agents,
         # "episode_reward_mean"   : 15,
-        "custom_metrics/ending_system_value_mean" : 95,
-        'custom_metric/percentage_of_optimal_allocation' : .95,
+        # "custom_metrics/ending_system_value_mean" : 95,
+        'custom_metrics/percentage_of_optimal_allocation_mean' : .95,
     }
 
     results = tune.run( args.run, 

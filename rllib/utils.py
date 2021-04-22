@@ -1,4 +1,6 @@
 import numpy as np
+import ray
+
 
 MAX_POSITION = 100
 
@@ -50,3 +52,52 @@ def generate_case_1(n_entities):
     return adjacency_matrix, position
 
 
+
+from ray.rllib.evaluation.metrics import collect_episodes, summarize_episodes
+from ray.rllib.examples.env.simple_corridor import SimpleCorridor 
+
+def custom_eval_function(trainer, eval_workers):
+    """Example of a custom evaluation function.
+    Args:
+        trainer (Trainer): trainer class to evaluate.
+        eval_workers (WorkerSet): evaluation workers.
+    Returns:
+        metrics (dict): evaluation metrics dict.
+    """
+
+    # We configured 2 eval workers in the training config.
+    worker_1, worker_2 = eval_workers.remote_workers()
+
+    # Set different env settings for each worker. Here we use a fixed config,
+    # which also could have been computed in each worker by looking at
+    # env_config.worker_index (printed in SimpleCorridor class above).
+    worker_1.foreach_env.remote(lambda env: env.reset())
+    worker_2.foreach_env.remote(lambda env: env.reset())
+
+    for i in range(1):
+        print("Custom evaluation round", i)
+        # Calling .sample() runs exactly one episode per worker due to how the
+        # eval workers are configured.
+        ray.get([w.sample.remote() for w in eval_workers.remote_workers()])
+
+    # Collect the accumulated episodes on the workers, and then summarize the
+    # episode stats into a metrics dict.
+    episodes, _ = collect_episodes(
+        remote_workers=eval_workers.remote_workers(), timeout_seconds=99999)
+    # You can compute metrics from the episodes manually, or use the
+    # convenient `summarize_episodes()` utility:
+    metrics = summarize_episodes(episodes)
+    # Note that the above two statements are the equivalent of:
+    # metrics = collect_metrics(eval_workers.local_worker(),
+    #                           eval_workers.remote_workers())
+
+    metrics = {}
+    # You can also put custom values in the metrics dict.
+    metrics['optimal_allocation'] = episodes[0].custom_metrics.get('optimal_allocation')
+    metrics['actual_allocation'] = episodes[0].custom_metrics.get('actual_allocation')
+    metrics['percentage_of_optimal_allocation'] = episodes[0].custom_metrics.get('percentage_of_optimal_allocation')
+    metrics['reward'] = episodes[0].agent_rewards.get((0, 'policy_0'))
+
+
+
+    return metrics
