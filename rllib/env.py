@@ -3,7 +3,7 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv
 import numpy as np
 from copy import deepcopy
 
-from utils import generate_case_1, generate_graph
+from utils import generate_graph
 
 
 
@@ -22,7 +22,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # self.position  = np.asarray(config['position'])
         # self.adjacency_matrix = np.asarray(config['adjacency_matrix'])
-        self.adjacency_matrix, self.position = generate_graph(debug = config.get('debug'))
+        self.adjacency_matrix, self.position = generate_graph(debug = config.get('debug'), max_value = config.get('max_system_value'))
 
         if config['discrete']:
             self.action_space = gym.spaces.Discrete(config['max_system_value'])
@@ -59,7 +59,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.timestep =0 
 
         # Reset the environment
-        self.adjacency_matrix, self.position = generate_graph(debug = self.config.get('debug'))
+        self.adjacency_matrix, self.position = generate_graph(debug = self.config.get('debug'), max_value = self.config.get('max_system_value'))
         # self.adjacency_matrix = np.asarray(self.adjacency_matrix)
         # self.position = np.asarray(self.position)
 
@@ -82,20 +82,22 @@ class Volunteers_Dilemma(MultiAgentEnv):
         # Compute the optimal action
         optimal_allocation = np.sum(self.adjacency_matrix[-1]) - self.position[-1]
         actual_allocation = action_dict[0]
-        percentage_of_optimal_allocation = np.clip(float(actual_allocation/optimal_allocation),0.0,1.0)
+        percentage_of_optimal_allocation = float(actual_allocation/optimal_allocation)
 
         starting_system_value = self.clear().sum()
                         
         # Retrieve the observations of the resetted environment
-        rewards, ending_system_value, new_positions = self.compute_reward(action_dict)
+        rewards, ending_system_value = self.compute_reward(action_dict)
+
+        # TODO: Compute the value left on the table
+        # Whether the agents overallocated, or underallocated as the difference between the starting system
+        # value and maximum system value; and their net positions afterwards
         
         observations    = {}
         info = {}
         for agent_identifier in range(self.n_agents):
             observations[agent_identifier] = self.get_observation(agent_identifier, reset=False, previous_actions=action_dict)
             info[agent_identifier] = {  
-                'starting_position' : self.position,
-                'adjacency_matrix' : self.adjacency_matrix,
                 'starting_system_value': starting_system_value,
                 'ending_system_value': ending_system_value,
                 'optimal_allocation': optimal_allocation,
@@ -123,6 +125,31 @@ class Volunteers_Dilemma(MultiAgentEnv):
             self.position[agent_identifier] -= transferred_amount
 
 
+    # def compute_reward(self, actions):
+    #     """
+    #     Return the requested agent's reward
+    #     """
+    #     position_old = deepcopy(self.position)
+
+    #     # Allocate the cash as the agents requested
+    #     previous_positions = self.clear()
+    #     self.take_action(actions)
+    #     new_positions = self.clear()
+
+    #     change_in_position = new_positions - previous_positions
+    #     reward =  change_in_position.reshape(-1,1)[:self.n_agents]
+
+    #     rewards = {}
+    #     for i in range(self.n_agents):
+    #         rewards[i] = reward.flatten()[i]
+
+    #     system_value = new_positions.sum()
+        
+    #     self.position = deepcopy(position_old)
+
+    #     return rewards, system_value
+
+
     def compute_reward(self, actions):
         """
         Return the requested agent's reward
@@ -130,11 +157,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
         position_old = deepcopy(self.position)
 
         # Allocate the cash as the agents requested
-        previous_positions = self.clear()
+        bank_value = self.position + np.sum(self.adjacency_matrix,axis=0)
+
         self.take_action(actions)
         new_positions = self.clear()
 
-        change_in_position = new_positions - previous_positions
+        change_in_position = bank_value - new_positions
         reward =  change_in_position.reshape(-1,1)[:self.n_agents]
 
         rewards = {}
@@ -145,7 +173,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
         
         self.position = deepcopy(position_old)
 
-        return rewards, system_value, new_positions
+        return rewards, system_value
 
 
     def clear(self):
@@ -190,7 +218,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         observation_dict = {}
 
-        observation = self.clear().flatten().tolist()
+        # observation = self.clear().flatten().tolist()
+
+        observation = self.position - np.sum(self.adjacency_matrix,axis=1) + np.sum(self.adjacency_matrix,axis=0)
+
+        # Alternative #1
+        observation = np.hstack((observation, self.position, self.adjacency_matrix.flatten()))
         
         if reset:
             for _ in range(self.n_agents):

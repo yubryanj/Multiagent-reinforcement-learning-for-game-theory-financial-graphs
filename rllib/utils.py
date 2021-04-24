@@ -1,52 +1,86 @@
 import numpy as np
+from numpy.matrixlib.defmatrix import matrix
 import ray
 
 
-MAX_POSITION = 100
 
-def generate_graph(debug = True):
+def generate_graph(debug = True, max_value = 100):
     if debug:
         adjacency_matrix = [[0.0, 0.0, 0.0],
                             [0.0, 0.0, 0.0],
                             [16.0, 16.0, 0.0]]
 
         position = [35.0, 35.0, 30.0]
+        adjacency_matrix = np.asarray(adjacency_matrix)
+        position = np.asarray(position)
     else:
-        adjacency_matrix, position = generate_case_1(n_entities=3)
+        adjacency_matrix, position = generate_volunteers_dilemma(n_entities=3, max_value = max_value)
 
 
     return adjacency_matrix, position
 
 
-def generate_case_1(n_entities):
+def generate_volunteers_dilemma(n_entities, max_value = 100, haircut_multiplier = 0.50 ):
+
+    n_agents = n_entities - 1 
 
     # Indicator if a valid graph was generated
     generated = False
 
     while not generated:
         # Sample a distribution for each bank
-        position = np.random.multinomial(MAX_POSITION, np.ones(n_entities)/n_entities, size=1)[0]
+        position_generated = False
+        while not position_generated:
+            position = np.random.multinomial(max_value, np.ones(n_entities)/n_entities, size=1)[0]
+            position_generated = (position > 1).all()
 
         # Initialize a zero'd out adjacency matrix
         adjacency_matrix = np.zeros((n_entities, n_entities))
 
         # Generate debts
-        total_debt = position[-1] + np.random.randint(position[:-1]).sum()
-        adjacency_matrix[-1,:-1] = np.random.multinomial(total_debt, np.ones(n_entities-1)/(n_entities-1),size=1)[0]
+        total_debt = np.random.randint(position[2] + 1 , position[2] + position[:2].min())
+        adjacency_matrix[2,:2] = np.random.multinomial(total_debt, np.ones(n_agents )/(n_agents),size=1)[0]
 
         # adjacency_matrix = adjacency_matrix.tolist()
         position = position.astype(float)
 
-        # Check that one bank is is distressed
-        # And that both can rescue
-        net_positions = position - np.sum(adjacency_matrix, axis=1)
-        savior_banks = [bank_id for bank_id, net_position in enumerate(net_positions[:-1]) if net_position > np.abs(net_positions[-1])]
 
-        # Conditions for successful generation
-        distressed_bank_generated = True if net_positions[-1] < 0 else False
-        sufficient_savior_banks = True if len(savior_banks) >= (n_entities -1) else False
+        """Conditions for successful generation"""
+
+        net_positions = position - np.sum(adjacency_matrix, axis=1)
+        savior_banks = [bank_id for bank_id, net_position in enumerate(net_positions[:2]) if net_position > np.abs(net_positions[2])]
+
+        # We have at least one distressed bank
+        distressed_bank_generated = True if net_positions[2] < 0 else False
+
+        # Each bank can save the distressed bank individually
+        sufficient_savior_banks = True if len(savior_banks) == (n_agents) else False
+
+        # Position if rescued
+        cost_of_rescue = -net_positions[2]
+        inflows = adjacency_matrix[2,:2]
+        rescued_positions = position[:n_agents] + inflows - cost_of_rescue
+
+        # Positions if not rescued
+        inflows = ((adjacency_matrix[2,:2] / total_debt) * haircut_multiplier * position[2])
+        not_rescued_positions = position[:n_agents] + inflows
+
+        # Individual_incentives
+        incentives = rescued_positions - not_rescued_positions - cost_of_rescue
+
+        each_savior_has_incentive = (incentives > 0 ).all()
+
+        print(  f'adjacency_matrix:\n{adjacency_matrix}',
+                f'\nposition:{position}', 
+                f'\nrescued_positions:{rescued_positions}', 
+                f'\nnot_rescued_positions:{not_rescued_positions}', 
+                f'\nincentives:{incentives}', 
+                f'\ncost_of_rescue:{cost_of_rescue}'
+            )
     
-        if distressed_bank_generated and sufficient_savior_banks:
+        if  distressed_bank_generated \
+            and sufficient_savior_banks \
+            and each_savior_has_incentive:
             generated = True
 
     return adjacency_matrix, position
@@ -54,7 +88,6 @@ def generate_case_1(n_entities):
 
 
 from ray.rllib.evaluation.metrics import collect_episodes, summarize_episodes
-from ray.rllib.examples.env.simple_corridor import SimpleCorridor 
 
 def custom_eval_function(trainer, eval_workers):
     """Example of a custom evaluation function.
@@ -93,6 +126,8 @@ def custom_eval_function(trainer, eval_workers):
 
     metrics = {}
     # You can also put custom values in the metrics dict.
+    metrics['starting_system_value'] = episodes[0].custom_metrics.get('starting_system_value')
+    metrics['ending_system_value'] = episodes[0].custom_metrics.get('ending_system_value')
     metrics['optimal_allocation'] = episodes[0].custom_metrics.get('optimal_allocation')
     metrics['actual_allocation'] = episodes[0].custom_metrics.get('actual_allocation')
     metrics['percentage_of_optimal_allocation'] = episodes[0].custom_metrics.get('percentage_of_optimal_allocation')
@@ -101,3 +136,12 @@ def custom_eval_function(trainer, eval_workers):
 
 
     return metrics
+
+
+if __name__ == "__main__":
+    adjacency_matrices = []
+    positions = []
+    while True:
+        adjacency_matrix, position = generate_volunteers_dilemma(n_entities=3, max_value=100)
+
+

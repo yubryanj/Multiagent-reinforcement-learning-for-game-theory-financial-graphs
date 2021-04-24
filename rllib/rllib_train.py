@@ -22,11 +22,13 @@ parser.add_argument("--n-agents",   type=int, default=1)
 parser.add_argument("--n-workers",  type=int, default=1)
 parser.add_argument("--n-samples",  type=int, default=3)
 parser.add_argument("--n-gpus",     type=int, default=0)
-parser.add_argument("--stop-iters", type=int, default=50)
+parser.add_argument("--stop-iters", type=int)
 parser.add_argument("--checkpoint-frequency", type=int, default=1)
 parser.add_argument("--episode-length", type=int, default=1)
 parser.add_argument("--stop-reward", type=float, default=6.0)
 parser.add_argument("--haircut-multiplier", type=float, default=0.50)
+parser.add_argument("--max-system-value", type=int, default=5)
+parser.add_argument("--restore",        type=str)
 
 
 if __name__ == "__main__":
@@ -37,14 +39,13 @@ if __name__ == "__main__":
         args.log_dir = f"/itet-stor/bryayu/net_scratch/results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
     ray.init(local_mode = args.local_mode)
 
-    # adjacency_matrix, position = generate_graph(args.debug)
-
     env_config = {
-            "n_agents":         args.n_agents,
-            "haircut_multiplier": args.haircut_multiplier,
-            "episode_length":   args.episode_length,
-            'discrete':         args.discrete,
-            'max_system_value':  100,            
+            "n_agents":             args.n_agents,
+            "haircut_multiplier":   args.haircut_multiplier,
+            "episode_length":       args.episode_length,
+            'discrete':             args.discrete,
+            'max_system_value':     args.max_system_value, 
+            'debug':                args.debug,
         }
 
     env = Volunteers_Dilemma(env_config)
@@ -84,7 +85,9 @@ if __name__ == "__main__":
 
         # Override the env config for evaluation.
         "evaluation_config": {
-            "env_config": {},
+            "env_config": {            
+                "episode_length":   1,
+                },
             "explore": False
         },
     }
@@ -104,6 +107,8 @@ if __name__ == "__main__":
         }
         config['hiddens'] = []
         config['dueling'] = False
+        #TODO: Remove me
+        config['seed'] = 123
     else:
     # Continuous action space
         config["model"] = { "custom_model": "my_torch_model",
@@ -118,20 +123,19 @@ if __name__ == "__main__":
         config["grad_clip"] = 1.0
 
     stop = {
-        # "training_iteration"    : args.stop_iters,
+        "training_iteration"    : args.stop_iters,
         # "episode_reward_mean"   : args.stop_reward * args.n_agents,
         # "episode_reward_mean"   : 15,
-        # "custom_metrics/ending_system_value_mean" : 95,
-        'custom_metrics/percentage_of_optimal_allocation_mean' : .95,
     }
 
     results = tune.run( args.run, 
                         config=config, 
-                        stop=stop, 
+                        # stop=stop, 
                         local_dir=args.log_dir, 
                         checkpoint_freq = args.checkpoint_frequency,
                         checkpoint_at_end = True,
                         num_samples = args.n_samples,
+                        # restore = args.restore,
                     )
 
     if args.as_test:
