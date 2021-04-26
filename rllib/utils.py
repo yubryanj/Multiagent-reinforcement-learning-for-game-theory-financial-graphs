@@ -70,14 +70,6 @@ def generate_volunteers_dilemma(n_entities, max_value = 100, haircut_multiplier 
 
         each_savior_has_incentive = (incentives > 0 ).all()
 
-        # print(  f'adjacency_matrix:\n{adjacency_matrix}',
-        #         f'\nposition:{position}', 
-        #         f'\nrescued_positions:{rescued_positions}', 
-        #         f'\nnot_rescued_positions:{not_rescued_positions}', 
-        #         f'\nincentives:{incentives}', 
-        #         f'\ncost_of_rescue:{cost_of_rescue}'
-        #     )
-    
         if  distressed_bank_generated \
             and sufficient_savior_banks \
             and each_savior_has_incentive:

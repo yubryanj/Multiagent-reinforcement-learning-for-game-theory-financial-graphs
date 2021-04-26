@@ -18,6 +18,8 @@ class MyCallbacks(DefaultCallbacks):
         episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
         episode.custom_metrics[f'actual_allocation'] = episode.last_info_for(0)['actual_allocation']
         episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
+        episode.custom_metrics[f'agent_0_maximum_reward'] = episode.last_info_for(0)['agent_0_maximum_reward']
+        episode.custom_metrics[f'agent_0_position'] = episode.last_info_for(0)['agent_0_position']
         pass
 
     def on_postprocess_trajectory(

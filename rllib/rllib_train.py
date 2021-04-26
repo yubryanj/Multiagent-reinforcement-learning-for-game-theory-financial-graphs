@@ -27,7 +27,7 @@ parser.add_argument("--checkpoint-frequency", type=int, default=1)
 parser.add_argument("--episode-length", type=int, default=1)
 parser.add_argument("--stop-reward", type=float, default=6.0)
 parser.add_argument("--haircut-multiplier", type=float, default=0.50)
-parser.add_argument("--max-system-value", type=int, default=5)
+parser.add_argument("--max-system-value", type=int, default=100)
 parser.add_argument("--restore",        type=str)
 
 
@@ -99,8 +99,8 @@ if __name__ == "__main__":
         config['exploration_config']= {
                 "type": "EpsilonGreedy",
                 "initial_epsilon": 1.0, # Need to update the epsilon greedy component for action masking
-                "final_epsilon": 0.05,
-                "epsilon_timesteps": 1e5, 
+                "final_epsilon": 0.20,
+                "epsilon_timesteps": 1e6, 
             }
         config['model'] = {  
                             "custom_model": "discrete_action_model",

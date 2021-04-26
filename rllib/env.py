@@ -103,7 +103,11 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 'optimal_allocation': optimal_allocation,
                 'actual_allocation': actual_allocation,
                 'percentage_of_optimal_allocation': percentage_of_optimal_allocation,
+                'agent_0_position': self.position[0],
+                'agent_0_maximum_reward': self.adjacency_matrix[2,0] * self.haircut_multiplier
                 }
+
+        
 
         done = {"__all__" : self.timestep == self.episode_length}
 
