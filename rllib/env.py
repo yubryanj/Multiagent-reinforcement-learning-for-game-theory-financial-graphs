@@ -157,19 +157,25 @@ class Volunteers_Dilemma(MultiAgentEnv):
         position_old = deepcopy(self.position)
 
         # Allocate the cash as the agents requested
-        bank_value = self.position + np.sum(self.adjacency_matrix,axis=0)
+        # Consider the discounted value
+        if self.get_net_position(2) < 0:
+            inflows = np.sum(self.adjacency_matrix,axis=0) * self.haircut_multiplier
+        else:
+            inflows = np.sum(self.adjacency_matrix,axis=0)
+        
+        bank_value = self.position + inflows
 
         self.take_action(actions)
-        new_positions = self.clear()
+        new_bank_value = self.clear()
 
-        change_in_position = bank_value - new_positions
+        change_in_position = new_bank_value - bank_value
         reward =  change_in_position.reshape(-1,1)[:self.n_agents]
 
         rewards = {}
         for i in range(self.n_agents):
             rewards[i] = reward.flatten()[i]
 
-        system_value = new_positions.sum()
+        system_value = new_bank_value.sum()
         
         self.position = deepcopy(position_old)
 
