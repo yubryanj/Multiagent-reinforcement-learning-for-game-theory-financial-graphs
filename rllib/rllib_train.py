@@ -34,11 +34,9 @@ parser.add_argument("--restore",        type=str)
 if __name__ == "__main__":
     args = parser.parse_args()
     if args.debug:
-        # args.log_dir = f"/itet-stor/bryayu/net_scratch/results/DEBUG/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
-        args.log_dir = f"./results/DEBUG/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
+        args.log_dir = f"/itet-stor/bryayu/net_scratch/results/DEBUG/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
     else:
-        # args.log_dir = f"/itet-stor/bryayu/net_scratch/results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
-        args.log_dir = f"./results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
+        args.log_dir = f"/itet-stor/bryayu/net_scratch/results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
     ray.init(local_mode = args.local_mode)
 
     env_config = {

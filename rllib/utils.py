@@ -133,7 +133,34 @@ def custom_eval_function(trainer, eval_workers):
 if __name__ == "__main__":
     adjacency_matrices = []
     positions = []
+    counts = {}
+    i = 0
     while True:
-        adjacency_matrix, position = generate_volunteers_dilemma(n_entities=3, max_value=100)
+        adjacency_matrix, position = generate_volunteers_dilemma(n_entities=3, max_value=17, haircut_multiplier = 0.0 )
+        deficit_amount = int(adjacency_matrix[2,:].sum() - position[2])
+
+        if deficit_amount in counts.keys():
+            counts[deficit_amount] = counts[deficit_amount] + 1
+        else:
+            counts[deficit_amount] = 1
+
+        i += 1
+
+        if i %1000 == 0 :
+            print(f'genrations: {i}', counts)
+            input()
 
 
+"""
+
+   [[0,0,0],
+    [0,0,0],
+    [3,3,0]]
+
+    [4,4,4]
+
+    allocate 2
+    4-2+3 = 5
+    reward = 1
+
+"""
