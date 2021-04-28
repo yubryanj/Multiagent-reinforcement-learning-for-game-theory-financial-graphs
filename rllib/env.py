@@ -68,7 +68,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.adjacency_matrix, self.position = generate_graph(
             debug = self.config.get('debug'), 
             max_value = self.config.get('max_system_value'), 
-            rescue_amount = (self.iteration % 3) + 1
+            rescue_amount = (self.iteration % 7) + 1
             )
 
         system_value = self.clear()
@@ -111,7 +111,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 'agent_0_maximum_reward': self.adjacency_matrix[2,0] * self.haircut_multiplier
                 }
 
-        
+        # TODO: Include percentage of total reward
 
         done = {"__all__" : self.timestep == self.episode_length}
 

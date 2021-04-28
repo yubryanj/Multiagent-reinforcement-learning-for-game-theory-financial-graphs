@@ -6,7 +6,7 @@ from ray.rllib.agents.ppo import PPOTrainer
 
 
 import argparse
-from custom_model import Custom_Model, Discrete_action_model_with_masking
+from custom_model import Custom_Model, Discrete_action_model_with_masking, Custom_discrete_model_with_masking
 from custom_callback import MyCallbacks
 from env import Volunteers_Dilemma
 from utils import generate_graph, custom_eval_function
@@ -34,9 +34,9 @@ parser.add_argument("--restore",        type=str)
 if __name__ == "__main__":
     args = parser.parse_args()
     if args.debug:
-        args.log_dir = f"/itet-stor/bryayu/net_scratch/results/DEBUG/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
+        args.log_dir = f"./itet-stor/bryayu/net_scratch/results/DEBUG/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
     else:
-        args.log_dir = f"/itet-stor/bryayu/net_scratch/results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
+        args.log_dir = f"./itet-stor/bryayu/net_scratch/results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
     ray.init(local_mode = args.local_mode)
 
     env_config = {
@@ -54,6 +54,7 @@ if __name__ == "__main__":
 
     ModelCatalog.register_custom_model("my_torch_model", Custom_Model)
     ModelCatalog.register_custom_model("discrete_action_model", Discrete_action_model_with_masking)
+    ModelCatalog.register_custom_model("custom_discrete_action_model_with_masking", Custom_discrete_model_with_masking)
 
     config = {
         "env": Volunteers_Dilemma,  
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         "evaluation_interval": 1,
 
         # Run 10 episodes each time evaluation runs.
-        "evaluation_num_episodes": 1,
+        "evaluation_num_episodes": 100,
 
         # Override the env config for evaluation.
         "evaluation_config": {
@@ -97,11 +98,12 @@ if __name__ == "__main__":
         config['exploration_config']= {
                 "type": "EpsilonGreedy",
                 "initial_epsilon": 1.0, # Need to update the epsilon greedy component for action masking
-                "final_epsilon": 0.1,
+                "final_epsilon": 0.10,
                 "epsilon_timesteps": 1e6, 
             }
         config['model'] = {  
-                            "custom_model": "discrete_action_model",
+                            # "custom_model": "discrete_action_model",
+                            "custom_model": "custom_discrete_action_model_with_masking",
                             # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
 
         }

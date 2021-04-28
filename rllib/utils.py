@@ -138,15 +138,13 @@ if __name__ == "__main__":
     positions = []
     counts = {}
     i = 0
-    rescue_amount = 1
-    lookups= {0:1, 1:2}
     
     while True:
         adjacency_matrix, position = generate_volunteers_dilemma(
             n_entities=3, 
-            max_value=17, 
+            max_value=100, 
             haircut_multiplier = 0.0 , 
-            rescue_amount=lookups[i%2]
+            rescue_amount= (i % 15) + 1
         )
         deficit_amount = int(adjacency_matrix[2,:].sum() - position[2])
 
@@ -154,8 +152,6 @@ if __name__ == "__main__":
             counts[deficit_amount] = counts[deficit_amount] + 1
         else:
             counts[deficit_amount] = 1
-
-        rescue_amount = lookups[i%2]
 
         i += 1
 

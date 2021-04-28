@@ -65,15 +65,6 @@ class Discrete_action_model_with_masking(TorchModelV2, nn.Module):
         activation = model_config.get("fcnet_activation")
         hiddens = model_config.get("fcnet_hiddens", [])
         no_final_linear = model_config.get("no_final_linear")
-        self.vf_share_layers = model_config.get("vf_share_layers")
-        self.free_log_std = model_config.get("free_log_std")
-
-        # Generate free-floating bias variables for the second half of
-        # the outputs.
-        if self.free_log_std:
-            assert num_outputs % 2 == 0, (
-                "num_outputs must be divisible by two", num_outputs)
-            num_outputs = num_outputs // 2
 
         layers = []
         # prev_layer_size = int(np.product(obs_space.shape))
@@ -121,26 +112,7 @@ class Discrete_action_model_with_masking(TorchModelV2, nn.Module):
                 self.num_outputs = (
                     [int(np.product(obs_space.shape))] + hiddens[-1:])[-1]
 
-        # Layer to add the log std vars to the state-dependent means.
-        if self.free_log_std and self._logits:
-            self._append_free_log_std = AppendBiasLayer(num_outputs)
-
         self._hidden_layers = nn.Sequential(*layers)
-
-        self._value_branch_separate = None
-        if not self.vf_share_layers:
-            # Build a parallel set of hidden layers for the value net.
-            prev_vf_layer_size = int(np.product(obs_space.original_space.spaces.get('real_obs').shape))
-            vf_layers = []
-            for size in hiddens:
-                vf_layers.append(
-                    SlimFC(
-                        in_size=prev_vf_layer_size,
-                        out_size=size,
-                        activation_fn=activation,
-                        initializer=normc_initializer(1.0)))
-                prev_vf_layer_size = size
-            self._value_branch_separate = nn.Sequential(*vf_layers)
 
         self._value_branch = SlimFC(
             in_size=prev_layer_size,
@@ -161,10 +133,7 @@ class Discrete_action_model_with_masking(TorchModelV2, nn.Module):
         obs = input_dict.get('obs').get('real_obs').float()
         self._last_flat_in = obs.reshape(obs.shape[0], -1)
         self._features = self._hidden_layers(self._last_flat_in)
-        logits = self._logits(self._features) if self._logits else \
-            self._features
-        if self.free_log_std:
-            logits = self._append_free_log_std(logits)
+        logits = self._logits(self._features)
 
         # Compute the masks
         action_mask = input_dict.get('obs').get('action_mask')
@@ -178,8 +147,45 @@ class Discrete_action_model_with_masking(TorchModelV2, nn.Module):
     @override(TorchModelV2)
     def value_function(self) -> TensorType:
         assert self._features is not None, "must call forward() first"
-        if self._value_branch_separate:
-            return self._value_branch(
-                self._value_branch_separate(self._last_flat_in)).squeeze(1)
-        else:
-            return self._value_branch(self._features).squeeze(1)
+        return self._value_branch(self._features).squeeze(1)
+
+
+class Custom_discrete_model_with_masking(TorchModelV2, nn.Module):
+    """Torch version of FastModel (tf)."""
+
+    def __init__(self, obs_space, action_space, num_outputs, model_config,
+                 name):
+        TorchModelV2.__init__(self, obs_space, action_space, num_outputs,
+                              model_config, name)
+        nn.Module.__init__(self)
+
+        self.obs_size = int(np.product(obs_space.original_space.spaces.get('real_obs').shape))
+        self.layer1 = torch.nn.Linear(self.obs_size, 128)
+        self.layer2 = torch.nn.Linear(128, 128)
+        self.layer3 = torch.nn.Linear(128, 128)
+        self.action = torch.nn.Linear(128, num_outputs)
+        
+        self.value = torch.nn.Linear(self.obs_size, 1)
+
+        self._output = None
+
+    @override(ModelV2)
+    def forward(self, input_dict, state, seq_lens):
+        self._output = input_dict.get('obs').get('real_obs').float()
+        x = self.layer1(self._output)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        logits = self.action(x)
+
+        action_mask = input_dict.get('obs').get('action_mask')
+        inf_mask = torch.clamp(torch.log(action_mask),FLOAT_MIN, FLOAT_MAX)
+
+        # Apply the masks
+        logits = logits + inf_mask
+
+        return logits, []
+
+    @override(ModelV2)
+    def value_function(self):
+        assert self._output is not None, "must call forward first!"
+        return torch.reshape(self.value(self._output), [-1])
