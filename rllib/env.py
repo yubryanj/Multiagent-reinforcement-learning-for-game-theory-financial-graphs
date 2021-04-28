@@ -18,11 +18,14 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.episode_length = config['episode_length']
         self.config = config
         self.distressed_node = 2
+        self.iteration = 0
 
+        # Placeholder to get observation size
+        self.adjacency_matrix, self.position = generate_graph(
+            debug = config.get('debug'), 
+            max_value = config.get('max_system_value')
+        )
 
-        # self.position  = np.asarray(config['position'])
-        # self.adjacency_matrix = np.asarray(config['adjacency_matrix'])
-        self.adjacency_matrix, self.position = generate_graph(debug = config.get('debug'), max_value = config.get('max_system_value'))
 
         if config['discrete']:
             self.action_space = gym.spaces.Discrete(config['max_system_value'])
@@ -57,11 +60,16 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.resetted = True
         self.dones = set()
         self.timestep =0 
+        self.iteration += 1
 
         # Reset the environment
-        self.adjacency_matrix, self.position = generate_graph(debug = self.config.get('debug'), max_value = self.config.get('max_system_value'))
-        # self.adjacency_matrix = np.asarray(self.adjacency_matrix)
-        # self.position = np.asarray(self.position)
+        # TODO: Remove the rescue amounts -- they're being used for testing if the network can learn
+        # Across different actions
+        self.adjacency_matrix, self.position = generate_graph(
+            debug = self.config.get('debug'), 
+            max_value = self.config.get('max_system_value'), 
+            rescue_amount = (self.iteration % 3) + 1
+            )
 
         system_value = self.clear()
 
@@ -88,10 +96,6 @@ class Volunteers_Dilemma(MultiAgentEnv):
                         
         # Retrieve the observations of the resetted environment
         rewards, ending_system_value = self.compute_reward(action_dict)
-
-        # TODO: Compute the value left on the table
-        # Whether the agents overallocated, or underallocated as the difference between the starting system
-        # value and maximum system value; and their net positions afterwards
         
         observations    = {}
         info = {}
@@ -127,31 +131,6 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 transferred_amount = self.position[agent_identifier] * actions[agent_identifier] 
             self.position[self.distressed_node] += transferred_amount
             self.position[agent_identifier] -= transferred_amount
-
-
-    # def compute_reward(self, actions):
-    #     """
-    #     Return the requested agent's reward
-    #     """
-    #     position_old = deepcopy(self.position)
-
-    #     # Allocate the cash as the agents requested
-    #     previous_positions = self.clear()
-    #     self.take_action(actions)
-    #     new_positions = self.clear()
-
-    #     change_in_position = new_positions - previous_positions
-    #     reward =  change_in_position.reshape(-1,1)[:self.n_agents]
-
-    #     rewards = {}
-    #     for i in range(self.n_agents):
-    #         rewards[i] = reward.flatten()[i]
-
-    #     system_value = new_positions.sum()
-        
-    #     self.position = deepcopy(position_old)
-
-    #     return rewards, system_value
 
 
     def compute_reward(self, actions):
@@ -202,7 +181,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
             if net_position < 0:
                 # Compute the amount to redistribute to other nodes
                 discounted_position = position[agent] * self.haircut_multiplier
-                normalized_adjacencies = adjacency_matrix[agent]/(adjacency_matrix[agent].sum())
+                normalized_adjacencies = adjacency_matrix[agent,:]/(adjacency_matrix[agent,:].sum())
 
                 amounts_to_redistribute = discounted_position * normalized_adjacencies
 

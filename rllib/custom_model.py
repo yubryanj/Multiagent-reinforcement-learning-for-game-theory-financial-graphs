@@ -53,7 +53,7 @@ class Custom_Model(TorchModelV2, nn.Module):
         return torch.reshape(self.value(self._output), [-1])
 
 
-class Discrete_action_model_with_masking(TorchModelV2):
+class Discrete_action_model_with_masking(TorchModelV2, nn.Module):
 
     def __init__(self, obs_space: gym.spaces.Space,
                  action_space: gym.spaces.Space, num_outputs: int,
@@ -130,7 +130,7 @@ class Discrete_action_model_with_masking(TorchModelV2):
         self._value_branch_separate = None
         if not self.vf_share_layers:
             # Build a parallel set of hidden layers for the value net.
-            prev_vf_layer_size = int(np.product(obs_space.shape))
+            prev_vf_layer_size = int(np.product(obs_space.original_space.spaces.get('real_obs').shape))
             vf_layers = []
             for size in hiddens:
                 vf_layers.append(

@@ -72,7 +72,7 @@ if __name__ == "__main__":
         "callbacks": MyCallbacks,  
 
         # Evaluation
-        "evaluation_num_workers": 2,
+        "evaluation_num_workers": 1,
 
         # Optional custom eval function.
         "custom_eval_function": custom_eval_function,
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         config['exploration_config']= {
                 "type": "EpsilonGreedy",
                 "initial_epsilon": 1.0, # Need to update the epsilon greedy component for action masking
-                "final_epsilon": 0.20,
+                "final_epsilon": 0.1,
                 "epsilon_timesteps": 1e6, 
             }
         config['model'] = {  
@@ -105,9 +105,6 @@ if __name__ == "__main__":
                             # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
 
         }
-        config['hiddens'] = []
-        config['dueling'] = False
-        #TODO: Remove me
         config['seed'] = 123
     else:
     # Continuous action space
@@ -124,9 +121,11 @@ if __name__ == "__main__":
 
     stop = {
         "training_iteration"    : args.stop_iters,
-        # "episode_reward_mean"   : args.stop_reward * args.n_agents,
-        # "episode_reward_mean"   : 15,
     }
+
+    if args.run == "DQN":
+        config['hiddens'] = []
+        config['dueling'] = False
 
     results = tune.run( args.run, 
                         config=config, 

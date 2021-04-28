@@ -3,8 +3,7 @@ from numpy.matrixlib.defmatrix import matrix
 import ray
 
 
-
-def generate_graph(debug = True, max_value = 100):
+def generate_graph(debug = True, max_value = 100, rescue_amount = 1):
     if debug:
         adjacency_matrix = [[0.0, 0.0, 0.0],
                             [0.0, 0.0, 0.0],
@@ -14,13 +13,17 @@ def generate_graph(debug = True, max_value = 100):
         adjacency_matrix = np.asarray(adjacency_matrix)
         position = np.asarray(position)
     else:
-        adjacency_matrix, position = generate_volunteers_dilemma(n_entities=3, max_value = max_value)
+        adjacency_matrix, position = generate_volunteers_dilemma(
+            n_entities = 3, 
+            max_value = max_value, 
+            rescue_amount=rescue_amount
+        )
 
 
     return adjacency_matrix, position
 
 
-def generate_volunteers_dilemma(n_entities, max_value = 100, haircut_multiplier = 0.50 ):
+def generate_volunteers_dilemma(n_entities, max_value = 100, haircut_multiplier = 0.50 , rescue_amount = 1):
 
     n_agents = n_entities - 1 
 
@@ -72,7 +75,8 @@ def generate_volunteers_dilemma(n_entities, max_value = 100, haircut_multiplier 
 
         if  distressed_bank_generated \
             and sufficient_savior_banks \
-            and each_savior_has_incentive:
+            and each_savior_has_incentive \
+            and rescue_amount == cost_of_rescue:
             generated = True
 
     return adjacency_matrix, position
@@ -91,13 +95,12 @@ def custom_eval_function(trainer, eval_workers):
     """
 
     # We configured 2 eval workers in the training config.
-    worker_1, worker_2 = eval_workers.remote_workers()
+    worker_1 = eval_workers.remote_workers()[0]
 
     # Set different env settings for each worker. Here we use a fixed config,
     # which also could have been computed in each worker by looking at
     # env_config.worker_index (printed in SimpleCorridor class above).
     worker_1.foreach_env.remote(lambda env: env.reset())
-    worker_2.foreach_env.remote(lambda env: env.reset())
 
     for i in range(1):
         print("Custom evaluation round", i)
@@ -135,8 +138,16 @@ if __name__ == "__main__":
     positions = []
     counts = {}
     i = 0
+    rescue_amount = 1
+    lookups= {0:1, 1:2}
+    
     while True:
-        adjacency_matrix, position = generate_volunteers_dilemma(n_entities=3, max_value=17, haircut_multiplier = 0.0 )
+        adjacency_matrix, position = generate_volunteers_dilemma(
+            n_entities=3, 
+            max_value=17, 
+            haircut_multiplier = 0.0 , 
+            rescue_amount=lookups[i%2]
+        )
         deficit_amount = int(adjacency_matrix[2,:].sum() - position[2])
 
         if deficit_amount in counts.keys():
@@ -144,11 +155,12 @@ if __name__ == "__main__":
         else:
             counts[deficit_amount] = 1
 
+        rescue_amount = lookups[i%2]
+
         i += 1
 
         if i %1000 == 0 :
             print(f'genrations: {i}', counts)
-            input()
 
 
 """
