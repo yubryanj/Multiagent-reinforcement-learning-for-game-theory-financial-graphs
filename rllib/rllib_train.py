@@ -12,33 +12,33 @@ from env import Volunteers_Dilemma
 from utils import generate_graph, custom_eval_function
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--as-test",    action="store_true")
-parser.add_argument("--local-mode", action="store_true")
-parser.add_argument("--discrete", action="store_true")
-parser.add_argument("--debug",      action="store_true")
-parser.add_argument("--run",        type=str, default="PG")
-parser.add_argument("--n-agents",   type=int, default=1)
-parser.add_argument("--n-workers",  type=int, default=1)
-parser.add_argument("--n-samples",  type=int, default=3)
-parser.add_argument("--n-gpus",     type=int, default=0)
-parser.add_argument("--stop-iters", type=int)
-parser.add_argument("--checkpoint-frequency", type=int, default=1)
-parser.add_argument("--episode-length", type=int, default=1)
-parser.add_argument("--stop-reward", type=float, default=6.0)
-parser.add_argument("--haircut-multiplier", type=float, default=0.50)
-parser.add_argument("--max-system-value", type=int, default=100)
-parser.add_argument("--restore",        type=str)
-
-
-if __name__ == "__main__":
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--as-test",    action="store_true")
+    parser.add_argument("--local-mode", action="store_true")
+    parser.add_argument("--discrete",   action="store_true")
+    parser.add_argument("--debug",      action="store_true")
+    parser.add_argument("--run",        type=str, default="PG")
+    parser.add_argument("--n-agents",   type=int, default=1)
+    parser.add_argument("--n-workers",  type=int, default=1)
+    parser.add_argument("--n-samples",  type=int, default=3)
+    parser.add_argument("--n-gpus",     type=int, default=0)
+    parser.add_argument("--stop-iters", type=int)
+    parser.add_argument("--checkpoint-frequency", type=int, default=1)
+    parser.add_argument("--episode-length", type=int, default=1)
+    parser.add_argument("--stop-reward", type=float, default=6.0)
+    parser.add_argument("--haircut-multiplier", type=float, default=0.50)
+    parser.add_argument("--max-system-value", type=int, default=100)
+    parser.add_argument("--restore",    type=str)
+    parser.add_argument("--note",       type=str)
+    parser.add_argument("--seed", type=int, default=123)
+    parser.add_argument("--experiment-number", type=int, default=000)
     args = parser.parse_args()
-    if args.debug:
-        args.log_dir = f"./itet-stor/bryayu/net_scratch/results/DEBUG/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
-    else:
-        args.log_dir = f"./itet-stor/bryayu/net_scratch/results/discrete_{args.discrete}/{args.n_agents}_agents/{args.run}/episode_length_{args.episode_length}"
-    ray.init(local_mode = args.local_mode)
+    args.log_dir = f"/itet-stor/bryayu/net_scratch/results/{args.experiment_number}"
+    return args
 
+
+def setup(args):
     env_config = {
             "n_agents":             args.n_agents,
             "haircut_multiplier":   args.haircut_multiplier,
@@ -96,30 +96,25 @@ if __name__ == "__main__":
     # Discrete action space
     if args.discrete:
         config['exploration_config']= {
-                "type": "EpsilonGreedy",
-                "initial_epsilon": 1.0, # Need to update the epsilon greedy component for action masking
-                "final_epsilon": 0.10,
-                "epsilon_timesteps": 1e6, 
-            }
+            "type": "EpsilonGreedy",
+            "initial_epsilon": 0.90, # Need to update the epsilon greedy component for action masking
+            "final_epsilon": 0.10,
+            "epsilon_timesteps": 1e6, 
+        }
+            
         config['model'] = {  
-                            # "custom_model": "discrete_action_model",
-                            "custom_model": "custom_discrete_action_model_with_masking",
-                            # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
+            "custom_model": "custom_discrete_action_model_with_masking",
+            # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
 
         }
-        config['seed'] = 123
+        config['seed'] = args.seed
     else:
     # Continuous action space
-        config["model"] = { "custom_model": "my_torch_model",
-                            "custom_model_config": {},
-                            "custom_action_dist": "TorchDiagGaussian",
-                            }
-        # config["extra_grad_process_fn"] = True
-        # "lr": tune.grid_search([1e-5]),
-        config["entropy_coeff"] = tune.grid_search([0.0,1e-2,1e-3])
-
-        # Set this to enable gradient clipping, as the max gradient
-        config["grad_clip"] = 1.0
+        config["model"] = { 
+            "custom_model": "my_torch_model",
+            "custom_model_config": {},
+            # "custom_action_dist": "TorchDiagGaussian",
+        }
 
     stop = {
         "training_iteration"    : args.stop_iters,
@@ -129,12 +124,21 @@ if __name__ == "__main__":
         config['hiddens'] = []
         config['dueling'] = False
 
+    return config, env_config, stop
+
+if __name__ == "__main__":
+    args=get_args()
+    
+    ray.init(local_mode = args.local_mode)
+
+    config, env_config, stop = setup(args)
+
     results = tune.run( args.run, 
                         config=config, 
-                        # stop=stop, 
+                        stop=stop, 
                         local_dir=args.log_dir, 
                         checkpoint_freq = args.checkpoint_frequency,
-                        checkpoint_at_end = True,
+                        # checkpoint_at_end = True,
                         num_samples = args.n_samples,
                         # restore = args.restore,
                     )

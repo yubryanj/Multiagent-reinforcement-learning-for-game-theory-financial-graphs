@@ -26,41 +26,36 @@ class Volunteers_Dilemma(MultiAgentEnv):
             max_value = config.get('max_system_value')
         )
 
-
         if config['discrete']:
             self.action_space = gym.spaces.Discrete(config['max_system_value'])
 
             self.observation_space = gym.spaces.Dict({
-                                        "action_mask": gym.spaces.Box(0, 1, shape=(self.action_space.n, )),
-                                        "avail_actions": gym.spaces.Box(-1, 1, shape=(self.action_space.n, )),
-                                        "real_obs": gym.spaces.Box(-config['max_system_value'],
-                                                                    config['max_system_value'],
-                                                                    shape=(self.get_observation_size(),)
-                                                                    )
+                "action_mask": gym.spaces.Box(0, 1, shape=(self.action_space.n, )),
+                "avail_actions": gym.spaces.Box(-1, 1, shape=(self.action_space.n, )),
+                "real_obs": gym.spaces.Box(-config['max_system_value'],
+                                            config['max_system_value'],
+                                            shape=(self.get_observation_size(),)
+                                            )
             })
         else:
-            self.action_space = gym.spaces.Box( low   = 0,\
-                                                high  = 1,\
-                                                shape = (1,), 
-                                                dtype = np.float32
-                                                )
+            self.action_space = gym.spaces.Box( 
+                low   = 0,\
+                high  = 1,\
+                shape = (1,), 
+                dtype = np.float32
+            )
                                             
-            self.observation_space = gym.spaces.Box(low   = -100,
-                                                    high  = 100,
-                                                    shape = (self.get_observation_size(),),
-                                                    dtype = np.float32
-                                                    )
-        self.dones = set()
-        self.timestep = 0
-        self.resetted = False
+            self.observation_space = gym.spaces.Box(
+                low   = -100,
+                high  = 100,
+                shape = (self.get_observation_size(),),
+                dtype = np.float32
+            )
+
 
 
     def reset(self):
-        
-        self.resetted = True
-        self.dones = set()
         self.timestep =0 
-        self.iteration += 1
 
         # Reset the environment
         # TODO: Remove the rescue amounts -- they're being used for testing if the network can learn
@@ -68,17 +63,15 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.adjacency_matrix, self.position = generate_graph(
             debug = self.config.get('debug'), 
             max_value = self.config.get('max_system_value'), 
-            rescue_amount = (self.iteration % 7) + 1
+            rescue_amount = (self.iteration % 7) + 1    # TODO: remove this hard-coding
             )
-
-        system_value = self.clear()
 
         # Retrieve the observations of the resetted environment        
         observations = {}
-        info ={}
         for agent_identifier in range(self.n_agents):
             observations[agent_identifier] = self.get_observation(agent_identifier, reset=True)
-            info[agent_identifier] = system_value.sum()
+
+        self.iteration += 1
 
         return observations
 
@@ -89,9 +82,6 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # Compute the optimal action
         optimal_allocation = np.sum(self.adjacency_matrix[-1]) - self.position[-1]
-        actual_allocation = action_dict[0]
-        percentage_of_optimal_allocation = float(actual_allocation/optimal_allocation)
-
         starting_system_value = self.clear().sum()
                         
         # Retrieve the observations of the resetted environment
@@ -105,11 +95,10 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 'starting_system_value': starting_system_value,
                 'ending_system_value': ending_system_value,
                 'optimal_allocation': optimal_allocation,
-                'actual_allocation': actual_allocation,
-                'percentage_of_optimal_allocation': percentage_of_optimal_allocation,
+                'actual_allocation': action_dict[agent_identifier],
+                'percentage_of_optimal_allocation': action_dict[agent_identifier]/optimal_allocation,
                 'agent_0_position': self.position[0],
-                'agent_0_maximum_reward': self.adjacency_matrix[2,0] * self.haircut_multiplier
-                }
+            }
 
         # TODO: Include percentage of total reward
 
@@ -205,36 +194,53 @@ class Volunteers_Dilemma(MultiAgentEnv):
                             matrix stacking the debt and cash position of each agent
         """
 
-        observation_dict = {}
+        def get_obs_discrete(agent_identifier=None, reset=False, previous_actions=None):
+            observation_dict = {}
 
-        # observation = self.clear().flatten().tolist()
+            observation = self.position - np.sum(self.adjacency_matrix,axis=1) + np.sum(self.adjacency_matrix,axis=0)
 
-        observation = self.position - np.sum(self.adjacency_matrix,axis=1) + np.sum(self.adjacency_matrix,axis=0)
+            # Alternative #1
+            observation = np.hstack((observation, self.position, self.adjacency_matrix.flatten()))
+            
+            if reset:
+                for _ in range(self.n_agents):
+                    observation  = observation + [0]
+            if not reset and previous_actions is not None:
+                for action in previous_actions:
+                    action = np.clip(action,0,1)
+                    observation = observation + [action]
 
-        # Alternative #1
-        observation = np.hstack((observation, self.position, self.adjacency_matrix.flatten()))
+            observation_dict['real_obs'] = observation
+            observation_dict['action_mask'] = np.array([0.] * self.action_space.n)
+            observation_dict['avail_actions'] = np.array([0.] * self.action_space.n)
+
+            # Mask all actions outside of current position
+            observation_dict.get('action_mask')[:int(self.position[agent_identifier])] = 1
+            
+            return observation_dict
+
+        def get_obs_continuous(agent_identifier=None, reset=False, previous_actions=None):
+            observation = self.position - np.sum(self.adjacency_matrix,axis=1) + np.sum(self.adjacency_matrix,axis=0)
+            observation = np.hstack((observation, self.position, self.adjacency_matrix.flatten()))
+
+            return observation
+
+
         
-        if reset:
-            for _ in range(self.n_agents):
-                observation  = observation + [0]
-        if not reset and previous_actions is not None:
-            for action in previous_actions:
-                action = np.clip(action,0,1)
-                observation = observation + [action]
+        if self.config.get('discrete'):
+            return get_obs_discrete(agent_identifier, reset, previous_actions)
+        else:
+            return get_obs_continuous(agent_identifier, reset, previous_actions)
 
-        observation_dict['real_obs'] = observation
-        observation_dict['action_mask'] = np.array([0.] * self.action_space.n)
-        observation_dict['avail_actions'] = np.array([0.] * self.action_space.n)
-
-        # Mask all actions outside of current position
-        observation_dict.get('action_mask')[:int(self.position[agent_identifier])] = 1
-
-        return observation_dict
 
 
     def get_observation_size(self):
         obs = self.get_observation(agent_identifier=0, reset=True)
-        return len(obs['real_obs'])
+
+        if self.config.get('discrete'):
+            return len(obs['real_obs'])
+        else:
+            return len(obs)
 
 
     def get_net_position(self, agent):

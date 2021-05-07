@@ -13,13 +13,19 @@ class MyCallbacks(DefaultCallbacks):
     def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
                        policies: Dict[str, Policy], episode: MultiAgentEpisode,
                        env_index: int, **kwargs):
+
+        if worker.env_context['discrete']:
+            episode.custom_metrics[f'current_epsilon'] = policies['policy_0'].exploration.get_info()['cur_epsilon']
+        
+        
         episode.custom_metrics[f'starting_system_value'] = episode.last_info_for(0)['starting_system_value']
         episode.custom_metrics[f'ending_system_value'] = episode.last_info_for(0)['ending_system_value']
-        episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
-        episode.custom_metrics[f'actual_allocation'] = episode.last_info_for(0)['actual_allocation']
         episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
-        episode.custom_metrics[f'agent_0_maximum_reward'] = episode.last_info_for(0)['agent_0_maximum_reward']
-        episode.custom_metrics[f'agent_0_position'] = episode.last_info_for(0)['agent_0_position']
+        episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
+
+        for i in range(base_env.envs[0].n_agents):
+            episode.custom_metrics[f'{i}_actual_allocation'] = episode.last_info_for(i)['actual_allocation']
+
         pass
 
     def on_postprocess_trajectory(
@@ -30,16 +36,18 @@ class MyCallbacks(DefaultCallbacks):
 
         # Store the action distribution of each agent
         
-        if not worker.env_context['discrete']:
-            action_low = policies[f'policy_{agent_id}'].action_space.low[0]
-            action_high = policies[f'policy_{agent_id}'].action_space.high[0]
+        # if not worker.env_context['discrete']:
+        #     action_low = policies[f'policy_{agent_id}'].action_space.low[0]
+        #     action_high = policies[f'policy_{agent_id}'].action_space.high[0]
 
-            for round in range(episode.length):
-                episode.custom_metrics[f'action_distribution_agent{agent_id}_round{round}_mu'] = postprocessed_batch['action_dist_inputs'][round][0]
-                episode.custom_metrics[f'action_distribution_agent{agent_id}_round{round}_sigma'] = np.exp(postprocessed_batch['action_dist_inputs'][round][1])
-                episode.custom_metrics[f'action_agent{agent_id}'] = np.clip(postprocessed_batch['actions'][round], action_low, action_high)
-                episode.custom_metrics[f'rewards_agent{agent_id}'] = postprocessed_batch['rewards'][round]
-                episode.custom_metrics[f'value_targets_agent{agent_id}'] = postprocessed_batch['value_targets'][round]
-                episode.custom_metrics[f'advantages_agent{agent_id}'] = postprocessed_batch['advantages'][round]
+        #     for round in range(episode.length):
+        #         # episode.custom_metrics[f'action_distribution_agent{agent_id}_round{round}_mu'] = postprocessed_batch['action_dist_inputs'][round][0]
+        #         # episode.custom_metrics[f'action_distribution_agent{agent_id}_round{round}_sigma'] = np.exp(postprocessed_batch['action_dist_inputs'][round][1])
+        #         episode.custom_metrics[f'action_agent{agent_id}'] = np.clip(postprocessed_batch['actions'][round], action_low, action_high)
+        #         episode.custom_metrics[f'rewards_agent{agent_id}'] = postprocessed_batch['rewards'][round]
+        #         episode.custom_metrics[f'value_targets_agent{agent_id}'] = postprocessed_batch['value_targets'][round]
+        #         episode.custom_metrics[f'advantages_agent{agent_id}'] = postprocessed_batch['advantages'][round]
+    
+        pass
 
             

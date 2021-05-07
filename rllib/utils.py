@@ -119,16 +119,19 @@ def custom_eval_function(trainer, eval_workers):
     # metrics = collect_metrics(eval_workers.local_worker(),
     #                           eval_workers.remote_workers())
 
+    agent_0_allocation = episodes[0].custom_metrics.get('0_actual_allocation') if episodes[0].custom_metrics.get('0_actual_allocation') is not None else 0
+    agent_1_allocation = episodes[0].custom_metrics.get('1_actual_allocation') if episodes[0].custom_metrics.get('1_actual_allocation') is not None else 0
+
     metrics = {}
     # You can also put custom values in the metrics dict.
     metrics['starting_system_value'] = episodes[0].custom_metrics.get('starting_system_value')
     metrics['ending_system_value'] = episodes[0].custom_metrics.get('ending_system_value')
     metrics['optimal_allocation'] = episodes[0].custom_metrics.get('optimal_allocation')
     metrics['actual_allocation'] = episodes[0].custom_metrics.get('actual_allocation')
-    metrics['percentage_of_optimal_allocation'] = episodes[0].custom_metrics.get('percentage_of_optimal_allocation')
-    metrics['reward'] = episodes[0].agent_rewards.get((0, 'policy_0'))
-
-
+    metrics['current_epsilon'] = episodes[0].custom_metrics.get('current_epsilon')
+    metrics['0_actual_allocation'] = agent_0_allocation
+    metrics['1_actual_allocation'] = agent_1_allocation
+    metrics['percentage_of_optimal_allocation'] = (agent_0_allocation + agent_1_allocation)/metrics['optimal_allocation']
 
     return metrics
 
