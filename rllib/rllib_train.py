@@ -8,8 +8,10 @@ from ray.rllib.agents.ppo import PPOTrainer
 import argparse
 from custom_model import Custom_Model, Discrete_action_model_with_masking, Custom_discrete_model_with_masking
 from custom_callback import MyCallbacks
+from custom_distribution import Custom_Distribution
 from env import Volunteers_Dilemma
 from utils import generate_graph, custom_eval_function
+
 
 
 def get_args():
@@ -51,10 +53,9 @@ def setup(args):
     env = Volunteers_Dilemma(env_config)
     obs_space = env.observation_space
     action_space = env.action_space
-
-    ModelCatalog.register_custom_model("my_torch_model", Custom_Model)
-    ModelCatalog.register_custom_model("discrete_action_model", Discrete_action_model_with_masking)
+    
     ModelCatalog.register_custom_model("custom_discrete_action_model_with_masking", Custom_discrete_model_with_masking)
+    ModelCatalog.register_custom_model("custom_distribution", Custom_Distribution)
 
     config = {
         "env": Volunteers_Dilemma,  
@@ -99,7 +100,7 @@ def setup(args):
             "type": "EpsilonGreedy",
             "initial_epsilon": 0.90, # Need to update the epsilon greedy component for action masking
             "final_epsilon": 0.10,
-            "epsilon_timesteps": 1e6, 
+            "epsilon_timesteps": 1e3, 
         }
             
         config['model'] = {  
@@ -140,7 +141,7 @@ if __name__ == "__main__":
                         checkpoint_freq = args.checkpoint_frequency,
                         # checkpoint_at_end = True,
                         num_samples = args.n_samples,
-                        # restore = args.restore,
+                        restore = args.restore,
                     )
 
     if args.as_test:
