@@ -3,40 +3,13 @@ from ray import tune
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.rllib.models import ModelCatalog
 
-import argparse
 from custom_model import Custom_discrete_model_with_masking, basic_model_with_masking
 from env import Volunteers_Dilemma
-from utils import custom_eval_function, MyCallbacks
+from utils import custom_eval_function, MyCallbacks, get_args
 
 
 
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--as-test",    action="store_true")
-    parser.add_argument("--local-mode", action="store_true")
-    parser.add_argument("--discrete",   action="store_true")
-    parser.add_argument("--debug",      action="store_true")
-    parser.add_argument("--run",        type=str, default="PG")
-    parser.add_argument("--n-agents",   type=int, default=1)
-    parser.add_argument("--n-workers",  type=int, default=1)
-    parser.add_argument("--n-samples",  type=int, default=3)
-    parser.add_argument("--n-gpus",     type=int, default=0)
-    parser.add_argument("--stop-iters", type=int, default=1)
-    parser.add_argument("--checkpoint-frequency", type=int, default=1)
-    parser.add_argument("--episode-length", type=int, default=1)
-    parser.add_argument("--stop-reward", type=float, default=6.0)
-    parser.add_argument("--haircut-multiplier", type=float, default=0.50)
-    parser.add_argument("--max-system-value", type=int, default=100)
-    parser.add_argument("--restore",    type=str)
-    parser.add_argument("--note",       type=str)
-    parser.add_argument("--seed",       type=int, default=123)
-    parser.add_argument("--experiment-number", type=int, default=000)
-    parser.add_argument("--number-of-negotiation-rounds", type=int, default=3)
-    parser.add_argument("--alpha",      type=int, default=1)    # Prosocial parameter
-    parser.add_argument("--beta",       type=int, default=0)    # Prosocial parameter
-    args = parser.parse_args()
-    args.log_dir = f"/itet-stor/bryayu/net_scratch/results/{args.experiment_number}"
-    return args
+
 
 
 def setup(args):
@@ -108,7 +81,8 @@ def setup(args):
         }
 
         config['model'] = {  
-            "custom_model": "basic_model", # TODO: Remove me
+
+            "custom_model": "custom_discrete_action_model_with_masking",
             "custom_model_config": {
                 'embedding_size' : 32,
                 'num_embeddings': args.max_system_value,

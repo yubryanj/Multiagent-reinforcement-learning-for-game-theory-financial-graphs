@@ -5,6 +5,8 @@ from ray.rllib.policy import Policy
 from typing import Dict
 import numpy as np
 import ray
+import argparse
+import json
 
 
 class MyCallbacks(DefaultCallbacks):
@@ -161,3 +163,40 @@ def custom_eval_function(trainer, eval_workers):
 
     return metrics
 
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--as-test",    action="store_true")
+    parser.add_argument("--local-mode", action="store_true")
+    parser.add_argument("--discrete",   action="store_true")
+    parser.add_argument("--debug",      action="store_true")
+    parser.add_argument("--run",        type=str, default="PG")
+    parser.add_argument("--n-agents",   type=int, default=1)
+    parser.add_argument("--n-workers",  type=int, default=1)
+    parser.add_argument("--n-samples",  type=int, default=3)
+    parser.add_argument("--n-gpus",     type=int, default=0)
+    parser.add_argument("--stop-iters", type=int, default=1)
+    parser.add_argument("--checkpoint-frequency", type=int, default=1)
+    parser.add_argument("--haircut-multiplier", type=float, default=0.50)
+    parser.add_argument("--max-system-value", type=int, default=100)
+    parser.add_argument("--restore",    type=str)
+    parser.add_argument("--seed",       type=int, default=123)
+    parser.add_argument("--experiment-number", type=int, default=000)
+    parser.add_argument("--number-of-negotiation-rounds", type=int, default=3)
+    parser.add_argument("--alpha",      type=int, default=1)    # Prosocial parameter
+    parser.add_argument("--beta",       type=int, default=0)    # Prosocial parameter
+    args = parser.parse_args()
+    args.log_dir = f"/itet-stor/bryayu/net_scratch/results/{args.experiment_number}"
+
+
+    with open('configs.json') as f:
+        data = f.read()
+    data = json.loads(data)
+
+    if f'{args.experiment_number}' in data.keys():
+        configs = data[f'{args.experiment_number}']
+        for key in configs:
+            setattr(args,key,configs.get(key))
+
+
+    return args
