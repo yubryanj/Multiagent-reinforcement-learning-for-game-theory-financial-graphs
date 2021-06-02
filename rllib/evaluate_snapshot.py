@@ -3,9 +3,95 @@ from rllib_train import get_args, setup
 from ray.rllib.agents.dqn import DQNTrainer
 from env import Volunteers_Dilemma
 
-from data.heatmap import plot
+import numpy as np
+import seaborn as sn
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.collections import QuadMesh
+from matplotlib.text import Text
+
+import os
+
+def plot(
+    actual_allocations, 
+    optimal_allocations, 
+    title="Single Agent allocation; 1e3 eval, 1e6 training episodes",
+    maximum_allocation = 7,):
+
+    n_rows = maximum_allocation + 2
+    n_cols = maximum_allocation + 2
+    n_cells = n_rows * n_cols
+    confusion_matrix = np.zeros((n_rows, n_cols))
+    for actual,optimal in zip(actual_allocations, optimal_allocations):
+        if actual >=0 and actual <=7:
+            confusion_matrix[int(actual),int(optimal)] += 1
+
+    for i in range(confusion_matrix.shape[0]):
+        confusion_matrix[i,-1] = confusion_matrix[i,:-1].sum()
+        confusion_matrix[-1,i] = confusion_matrix[:-1,i].sum()
+
+    print(confusion_matrix)
 
 
+    df_cm = pd.DataFrame(confusion_matrix, index = [i for i in range(n_rows-1)] + ['Total'],
+                      columns = [i for i in range(n_cols-1)] + ['Total'])
+
+    plt.figure(figsize = (10,7))
+    plt.title(title)
+    plt.ylabel("Actual Allocation")
+    plt.xlabel("Optimal Allocation")
+    ax = sn.heatmap(df_cm, annot=True, fmt='g', cmap="Blues", annot_kws={"fontsize":8}, cbar=False)
+    ax.set(xlabel='Optimal Allocation', ylabel='Actual Allocation')
+
+    quadmesh = ax.findobj(QuadMesh)[0]
+    facecolors = quadmesh.get_facecolors()
+
+    # make colors of the last column white
+    facecolors[np.arange(n_rows-1,n_cells,n_cols)] = np.array([1,1,1,1])
+    facecolors[np.arange(n_cells-n_cols,n_cells)] = np.array([1,1,1,1])
+
+    quadmesh.set_facecolors = facecolors
+
+    # set color of all text to black
+    for i in ax.findobj(Text):
+        i.set_color('black')
+
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top') 
+
+    plt.savefig(f'./data/checkpoints/{run}/{title}.png')
+    plt.clf()
+
+
+def plot_hist(data, title):
+    sn.set_theme()
+    sn.histplot(data=data, shrink =0.8, bins=30)
+    plt.xlabel("Allocations")
+    plt.ylabel("Frequency")
+    plt.title(title)
+    plt.savefig(f'./data/checkpoints/{run}/{title}_hist.png')
+    plt.clf()
+
+
+def jointplot(x, y, title):
+
+    x_lim_max = np.max([np.max(y),10])
+    y_lim_max = np.max([np.max(y),10])
+
+    sn.set_theme()
+    g = sn.jointplot(
+        x = x.flatten(), 
+        y = y.flatten(),
+        xlim = [0, x_lim_max],
+        ylim = [0, y_lim_max],
+    )
+    g.set_axis_labels(xlabel="agent 0", ylabel="agent 1")
+    plt.savefig(f'./data/checkpoints/{run}/{title}_jointplot.png')
+    plt.clf()
+
+
+    
 
 if __name__ == "__main__":
     args = get_args()
@@ -14,12 +100,32 @@ if __name__ == "__main__":
 
     config['explore'] = False
 
-    checkpoints = [1400,1600,1800,2000]
+    checkpoints = [50,100,150,200]
+    n_rounds = 100
+    run = 31
+    
+    dictionary = {
+        24:'24/DQN/DQN_Volunteers_Dilemma_5f3f1_00000_0_2021-05-31_12-10-06',   # Discrete - single agent fixed graph
+        25:'25/DQN/DQN_Volunteers_Dilemma_633af_00000_0_2021-05-31_12-10-12',   # Discrete - multi agent fixed graph
+        26:'26/DQN/DQN_Volunteers_Dilemma_6d6f3_00000_0_2021-05-31_12-10-29',   # Discrete - multi agent multiple graphs
+        27:'27/DQN/DQN_Volunteers_Dilemma_bb50e_00000_0_2021-05-31_12-19-50',   # Discrete, multi agent, multiple graphs, prosocial
+        28:'28/DQN/DQN_Volunteers_Dilemma_bcbcb_00000_0_2021-05-31_12-19-52',   # Discrete, multi-agent, multiple graphs, 3 rounds
+        29:'29/DQN/DQN_Volunteers_Dilemma_c2218_00000_0_2021-05-31_12-20-01',   # Discrete, multi-agent, multiple graphs, prosocial, 3 rounds
+        30:'30/DQN/DQN_Volunteers_Dilemma_1c8e6_00000_0_2021-06-01_13-18-38',   # Discrete - multi agent multiple graphs
+        31:'31/DQN/DQN_Volunteers_Dilemma_a4df0_00000_0_2021-06-01_13-29-36',   # Discrete - Single-agent, multi-graph
+        32:'32/DQN/DQN_Volunteers_Dilemma_57000_00000_0_2021-06-01_13-34-35',   # Discrete - Multi-agent, multi-graph
 
+
+        }
+    
+    path = f"/itet-stor/bryayu/net_scratch/results/{dictionary[run]}"
+
+    if not os.path.exists(f'./data/checkpoints/{run}'):
+        os.makedirs(f'./data/checkpoints/{run}')
 
     for checkpoint in checkpoints:
         agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
-        agent.restore(f"/itet-stor/bryayu/net_scratch/results/6/DQN/DQN_Volunteers_Dilemma_f75fc_00000_0_2021-05-08_10-39-56/checkpoint_{checkpoint}/checkpoint-{checkpoint}")
+        agent.restore(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}")
 
         # instantiate env class
         env = Volunteers_Dilemma(env_config)
@@ -28,18 +134,46 @@ if __name__ == "__main__":
         agent_1_actions = []
         optimal_allocation = []
 
-        for i in range(1000):
+        for i in range(n_rounds):
+            a_0 = []
+            a_1 = []
             obs = env.reset()
-            action_0 = agent.compute_action(obs[0], policy_id='policy_0')
-            action_1 = agent.compute_action(obs[1], policy_id='policy_1')
+            for round in range(env_config.get('number_of_negotiation_rounds')):
+                actions = {}
+                
+                action_0 = agent.compute_action(obs[0], policy_id='policy_0')
+                actions[0] = action_0
+                a_0.append(action_0)
+                
+                if env_config.get('n_agents') == 2:
+                    action_1 = agent.compute_action(obs[1], policy_id='policy_1')
+                    actions[1] = action_1
+                    a_1.append(action_1)
 
-            agent_0_actions.append(action_0)
-            agent_1_actions.append(action_1)
+
+                obs, _, _, _ = env.step(actions)
+
+            agent_0_actions.append(a_0)
+            agent_1_actions.append(a_1)
             optimal_allocation.append(-obs[0]['real_obs'][2])
         
         pass
 
-        plot(agent_0_actions, optimal_allocation, title=f"Checkpoint {checkpoint}, Agent 0")
-        plot(agent_1_actions, optimal_allocation, title=f"Checkpoint {checkpoint}, Agent 1")
+        agent_0_actions = np.array(agent_0_actions)
+        agent_1_actions = np.array(agent_1_actions)
+        optimal_allocations = np.array(optimal_allocation)
+
+        for round in range(env_config.get('number_of_negotiation_rounds')):
+            a0_actions = agent_0_actions[:,round]
+            plot(a0_actions, optimal_allocation, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
+            plot_hist(a0_actions,title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
+
+            if env_config.get('n_agents') == 2 :
+                a1_actions = agent_1_actions[:,round]
+                plot(a1_actions, optimal_allocation, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
+                plot_hist(a1_actions,title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
+
+                jointplot(a0_actions, a1_actions, title=f"Checkpoint {checkpoint} Round {round}")
+
 
     ray.shutdown()

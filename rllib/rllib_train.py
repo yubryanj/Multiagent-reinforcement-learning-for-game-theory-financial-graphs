@@ -2,15 +2,11 @@ import ray
 from ray import tune
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.rllib.models import ModelCatalog
-from ray.rllib.agents.ppo import PPOTrainer
-
 
 import argparse
-from custom_model import Custom_Model, Discrete_action_model_with_masking, Custom_discrete_model_with_masking
-from custom_callback import MyCallbacks
-from custom_distribution import Custom_Distribution
+from custom_model import Custom_discrete_model_with_masking, basic_model_with_masking
 from env import Volunteers_Dilemma
-from utils import generate_graph, custom_eval_function
+from utils import custom_eval_function, MyCallbacks
 
 
 
@@ -25,7 +21,7 @@ def get_args():
     parser.add_argument("--n-workers",  type=int, default=1)
     parser.add_argument("--n-samples",  type=int, default=3)
     parser.add_argument("--n-gpus",     type=int, default=0)
-    parser.add_argument("--stop-iters", type=int)
+    parser.add_argument("--stop-iters", type=int, default=1)
     parser.add_argument("--checkpoint-frequency", type=int, default=1)
     parser.add_argument("--episode-length", type=int, default=1)
     parser.add_argument("--stop-reward", type=float, default=6.0)
@@ -33,8 +29,11 @@ def get_args():
     parser.add_argument("--max-system-value", type=int, default=100)
     parser.add_argument("--restore",    type=str)
     parser.add_argument("--note",       type=str)
-    parser.add_argument("--seed", type=int, default=123)
+    parser.add_argument("--seed",       type=int, default=123)
     parser.add_argument("--experiment-number", type=int, default=000)
+    parser.add_argument("--number-of-negotiation-rounds", type=int, default=3)
+    parser.add_argument("--alpha",      type=int, default=1)    # Prosocial parameter
+    parser.add_argument("--beta",       type=int, default=0)    # Prosocial parameter
     args = parser.parse_args()
     args.log_dir = f"/itet-stor/bryayu/net_scratch/results/{args.experiment_number}"
     return args
@@ -48,6 +47,9 @@ def setup(args):
             'discrete':             args.discrete,
             'max_system_value':     args.max_system_value, 
             'debug':                args.debug,
+            'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
+            'alpha':                args.alpha,
+            'beta':                 args.beta,
         }
 
     env = Volunteers_Dilemma(env_config)
@@ -55,7 +57,8 @@ def setup(args):
     action_space = env.action_space
     
     ModelCatalog.register_custom_model("custom_discrete_action_model_with_masking", Custom_discrete_model_with_masking)
-    ModelCatalog.register_custom_model("custom_distribution", Custom_Distribution)
+    ModelCatalog.register_custom_model("basic_model", basic_model_with_masking)
+    # ModelCatalog.register_custom_action_dist("custom_action_distribution", Custom_Distribution)
 
     config = {
         "env": Volunteers_Dilemma,  
@@ -88,7 +91,7 @@ def setup(args):
         # Override the env config for evaluation.
         "evaluation_config": {
             "env_config": {            
-                "episode_length":   1,
+                "episode_length":   args.number_of_negotiation_rounds,
                 },
             "explore": False
         },
@@ -96,26 +99,26 @@ def setup(args):
 
     # Discrete action space
     if args.discrete:
+
         config['exploration_config']= {
             "type": "EpsilonGreedy",
-            "initial_epsilon": 0.90, # Need to update the epsilon greedy component for action masking
+            "initial_epsilon": 0.90, 
             "final_epsilon": 0.10,
-            "epsilon_timesteps": 1e3, 
+            "epsilon_timesteps": args.stop_iters, 
         }
-            
+
         config['model'] = {  
-            "custom_model": "custom_discrete_action_model_with_masking",
+            "custom_model": "basic_model", # TODO: Remove me
+            "custom_model_config": {
+                'embedding_size' : 32,
+                'num_embeddings': args.max_system_value,
+            },
+            # "custom_action_dist": "custom_action_distribution",
             # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
 
         }
+
         config['seed'] = args.seed
-    else:
-    # Continuous action space
-        config["model"] = { 
-            "custom_model": "my_torch_model",
-            "custom_model_config": {},
-            # "custom_action_dist": "TorchDiagGaussian",
-        }
 
     stop = {
         "training_iteration"    : args.stop_iters,

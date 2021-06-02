@@ -2,8 +2,8 @@ import gym
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 import numpy as np
 from copy import deepcopy
-
 from utils import generate_graph
+from gym.spaces import Discrete, Dict, Box
 
 
 
@@ -13,9 +13,6 @@ class Volunteers_Dilemma(MultiAgentEnv):
     def __init__(self, config):
         # Generalize the graph for any bank being in distress
 
-        self.n_agents = config['n_agents']
-        self.haircut_multiplier = config['haircut_multiplier']
-        self.episode_length = config['episode_length']
         self.config = config
         self.distressed_node = 2
         self.iteration = 0
@@ -27,31 +24,50 @@ class Volunteers_Dilemma(MultiAgentEnv):
         )
 
         if config['discrete']:
-            self.action_space = gym.spaces.Discrete(config['max_system_value'])
+            self.action_space = Discrete(config['max_system_value'])
 
-            self.observation_space = gym.spaces.Dict({
-                "action_mask": gym.spaces.Box(0, 1, shape=(self.action_space.n, )),
-                "avail_actions": gym.spaces.Box(-1, 1, shape=(self.action_space.n, )),
-                "real_obs": gym.spaces.Box(-config['max_system_value'],
-                                            config['max_system_value'],
-                                            shape=(self.get_observation_size(),)
-                                            )
+            self.observation_space = Dict({
+                "action_mask": Box(
+                    0,
+                    1, 
+                    shape=(self.action_space.n, )
+                ),
+                "real_obs": Box(
+                    -config['max_system_value'],
+                    config['max_system_value'],
+                    shape=(self.get_observation_size(),)
+                ),
+                "last_offer": Box(
+                    0,
+                    config['max_system_value'],
+                    shape=(1,)
+                ),
+                "final_round": Box(
+                    0,
+                    1,
+                    shape=(1,)
+                ),
+                "net_position": Box(
+                    0, 
+                    config['max_system_value'], 
+                    shape=(1, )
+                ),
+                "rescue_amount": Box(
+                    0, 
+                    config['max_system_value'], 
+                    shape=(1, )
+                ),
+                "liabilities": Box(
+                    0, 
+                    config['max_system_value'], 
+                    shape=(1, )
+                ),
+                "assets": Box(
+                    0, 
+                    config['max_system_value'], 
+                    shape=(1, )
+                ),
             })
-        else:
-            self.action_space = gym.spaces.Box( 
-                low   = 0,\
-                high  = 1,\
-                shape = (1,), 
-                dtype = np.float32
-            )
-                                            
-            self.observation_space = gym.spaces.Box(
-                low   = -100,
-                high  = 100,
-                shape = (self.get_observation_size(),),
-                dtype = np.float32
-            )
-
 
 
     def reset(self):
@@ -68,7 +84,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # Retrieve the observations of the resetted environment        
         observations = {}
-        for agent_identifier in range(self.n_agents):
+        for agent_identifier in range(self.config['n_agents']):
             observations[agent_identifier] = self.get_observation(agent_identifier, reset=True)
 
         self.iteration += 1
@@ -76,7 +92,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
         return observations
 
 
-    def step(self, action_dict):
+    def step(self, actions):
         # Increment the timestep counter
         self.timestep += 1
 
@@ -85,71 +101,75 @@ class Volunteers_Dilemma(MultiAgentEnv):
         starting_system_value = self.clear().sum()
                         
         # Retrieve the observations of the resetted environment
-        rewards, ending_system_value = self.compute_reward(action_dict)
+        rewards, ending_system_value = self.compute_reward(actions, round = self.timestep)
         
         observations    = {}
         info = {}
-        for agent_identifier in range(self.n_agents):
-            observations[agent_identifier] = self.get_observation(agent_identifier, reset=False, previous_actions=action_dict)
+        for agent_identifier in range(self.config['n_agents']):
+            observations[agent_identifier] = self.get_observation(agent_identifier, reset=False, actions=actions)
             info[agent_identifier] = {  
                 'starting_system_value': starting_system_value,
                 'ending_system_value': ending_system_value,
                 'optimal_allocation': optimal_allocation,
-                'actual_allocation': action_dict[agent_identifier],
-                'percentage_of_optimal_allocation': action_dict[agent_identifier]/optimal_allocation,
+                'actual_allocation': actions[agent_identifier],
+                'percentage_of_optimal_allocation': actions[agent_identifier]/optimal_allocation,
                 'agent_0_position': self.position[0],
             }
 
-        # TODO: Include percentage of total reward
-
-        done = {"__all__" : self.timestep == self.episode_length}
+        done = {"__all__" : self.timestep == self.config['number_of_negotiation_rounds']}
 
         return observations, rewards, done, info
 
 
-    def take_action(self, actions):
+    def compute_reward(self, actions, round):
         """
-        TODO: WRITE ME
-        """    
-
-        for agent_identifier in actions:
-
-            if self.config['discrete']:
-                transferred_amount = actions[agent_identifier]
-            else:
-                transferred_amount = self.position[agent_identifier] * actions[agent_identifier] 
-            self.position[self.distressed_node] += transferred_amount
-            self.position[agent_identifier] -= transferred_amount
-
-
-    def compute_reward(self, actions):
+        Returns a reward signal at the end of negotiations
+        For all other rounds, returns 0
         """
-        Return the requested agent's reward
-        """
-        position_old = deepcopy(self.position)
 
-        # Allocate the cash as the agents requested
-        # Consider the discounted value
-        if self.get_net_position(2) < 0:
-            inflows = np.sum(self.adjacency_matrix,axis=0) * self.haircut_multiplier
+        # No reward signal if it is not the final negotiation round
+        # All offers before is cheaptalk
+        if not round == self.config['number_of_negotiation_rounds']:
+            rewards = {}
+            system_value = self.clear().sum()
+            for i in range(self.config['n_agents']):
+                rewards[i] = 0
         else:
-            inflows = np.sum(self.adjacency_matrix,axis=0)
-        
-        bank_value = self.position + inflows
 
-        self.take_action(actions)
-        new_bank_value = self.clear()
+            position_old = deepcopy(self.position)
 
-        change_in_position = new_bank_value - bank_value
-        reward =  change_in_position.reshape(-1,1)[:self.n_agents]
+            # Allocate the cash as the agents requested
+            # Consider the discounted value
+            if self.get_net_position(2) < 0:
+                inflows = np.sum(self.adjacency_matrix,axis=0) * self.config['haircut_multiplier']
+            else:
+                inflows = np.sum(self.adjacency_matrix,axis=0)
+            
+            bank_value = self.position + inflows
 
-        rewards = {}
-        for i in range(self.n_agents):
-            rewards[i] = reward.flatten()[i]
+            # Modifies the environment according to the agent's requested actions
+            for agent_identifier in actions:
 
-        system_value = new_bank_value.sum()
-        
-        self.position = deepcopy(position_old)
+                if self.config['discrete']:
+                    transferred_amount = actions[agent_identifier]
+                else:
+                    transferred_amount = self.position[agent_identifier] * actions[agent_identifier] 
+                self.position[self.distressed_node] += transferred_amount
+                self.position[agent_identifier] -= transferred_amount
+
+            new_bank_value = self.clear()
+
+            change_in_position = new_bank_value - bank_value
+            reward =  change_in_position.reshape(-1,1)[:self.config['n_agents']]
+
+            rewards = {}
+            for i in range(self.config['n_agents']):
+                rewards[i] = self.config.get('alpha') * reward.flatten()[i] + \
+                             self.config.get('beta') * reward.flatten()[(i+1)%self.config['n_agents']]
+
+            system_value = new_bank_value.sum()
+            
+            self.position = deepcopy(position_old)
 
         return rewards, system_value
 
@@ -157,8 +177,6 @@ class Volunteers_Dilemma(MultiAgentEnv):
     def clear(self):
         """
         Clear the system to see where everything stabilizes
-        :params None
-        :output TODO:WRITE ME
         """
         adjacency_matrix = deepcopy(self.adjacency_matrix)
         position = deepcopy(self.position)
@@ -169,7 +187,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
             if net_position < 0:
                 # Compute the amount to redistribute to other nodes
-                discounted_position = position[agent] * self.haircut_multiplier
+                discounted_position = position[agent] * self.config['haircut_multiplier']
                 normalized_adjacencies = adjacency_matrix[agent,:]/(adjacency_matrix[agent,:].sum())
 
                 amounts_to_redistribute = discounted_position * normalized_adjacencies
@@ -186,40 +204,44 @@ class Volunteers_Dilemma(MultiAgentEnv):
         return position
 
 
-    def get_observation(self, agent_identifier=None, reset=False, previous_actions=None):
+    def get_observation(self, agent_identifier=None, reset=False, actions=None):
         """
         Generates the observation matrix displayed to the agent
-        :param    None
-        :output   np.array  [self.number_of_banks + 1, self.number_of_banks] 
-                            matrix stacking the debt and cash position of each agent
         """
 
-        def get_obs_discrete(agent_identifier=None, reset=False, previous_actions=None):
+        def get_obs_discrete(agent_identifier=None, reset=False, actions=None):
             observation_dict = {}
 
             observation = self.position - np.sum(self.adjacency_matrix,axis=1) + np.sum(self.adjacency_matrix,axis=0)
 
             # Alternative #1
             observation = np.hstack((observation, self.position, self.adjacency_matrix.flatten()))
-            
-            if reset:
-                for _ in range(self.n_agents):
-                    observation  = observation + [0]
-            if not reset and previous_actions is not None:
-                for action in previous_actions:
-                    action = np.clip(action,0,1)
-                    observation = observation + [action]
 
-            observation_dict['real_obs'] = observation
+            observation_dict['real_obs']    = observation
             observation_dict['action_mask'] = np.array([0.] * self.action_space.n)
-            observation_dict['avail_actions'] = np.array([0.] * self.action_space.n)
+            observation_dict['assets']      = np.array([self.position[agent_identifier]])
+            observation_dict['liabilities'] = np.array([np.sum(self.adjacency_matrix,axis=1)[agent_identifier]])
+            observation_dict['net_position']= np.array([observation[agent_identifier]])
+            observation_dict['rescue_amount'] = np.array([abs(observation[self.distressed_node])])
+
+            if self.config.get('n_agents') == 1:
+                observation_dict['last_offer'] = np.zeros(1)
+            else:
+                observation_dict['last_offer']  = np.array([actions[(agent_identifier + 1) % 2]]) if actions is not None else np.zeros(1)
+
+
+
+            if 'timestep' in self.__dict__.keys() and self.timestep == self.config['number_of_negotiation_rounds']:
+                observation_dict['final_round'] = np.ones(1)
+            else:
+                observation_dict['final_round'] = np.zeros(1)
 
             # Mask all actions outside of current position
             observation_dict.get('action_mask')[:int(self.position[agent_identifier])] = 1
             
             return observation_dict
 
-        def get_obs_continuous(agent_identifier=None, reset=False, previous_actions=None):
+        def get_obs_continuous(agent_identifier=None, reset=False, actions=None):
             observation = self.position - np.sum(self.adjacency_matrix,axis=1) + np.sum(self.adjacency_matrix,axis=0)
             observation = np.hstack((observation, self.position, self.adjacency_matrix.flatten()))
 
@@ -228,9 +250,9 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         
         if self.config.get('discrete'):
-            return get_obs_discrete(agent_identifier, reset, previous_actions)
+            return get_obs_discrete(agent_identifier, reset, actions)
         else:
-            return get_obs_continuous(agent_identifier, reset, previous_actions)
+            return get_obs_continuous(agent_identifier, reset, actions)
 
 
 

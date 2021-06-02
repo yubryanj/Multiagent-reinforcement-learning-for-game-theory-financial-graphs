@@ -1,9 +1,34 @@
+from ray.rllib.agents.callbacks import DefaultCallbacks
+from ray.rllib.evaluation import MultiAgentEpisode, RolloutWorker
+from ray.rllib.env import BaseEnv
+from ray.rllib.policy import Policy
+from typing import Dict
 import numpy as np
-from numpy.matrixlib.defmatrix import matrix
 import ray
 
 
-def generate_graph(debug = True, max_value = 100, rescue_amount = 1):
+class MyCallbacks(DefaultCallbacks):
+
+    def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                       policies: Dict[str, Policy], episode: MultiAgentEpisode,
+                       env_index: int, **kwargs):
+
+        if worker.env_context['discrete']:
+            episode.custom_metrics[f'current_epsilon'] = policies['policy_0'].exploration.get_info()['cur_epsilon']
+        
+        
+        episode.custom_metrics[f'starting_system_value'] = episode.last_info_for(0)['starting_system_value']
+        episode.custom_metrics[f'ending_system_value'] = episode.last_info_for(0)['ending_system_value']
+        episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
+        episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
+
+        for i in range(base_env.envs[0].config['n_agents']):
+            episode.custom_metrics[f'{i}_actual_allocation'] = episode.last_info_for(i)['actual_allocation']
+
+        pass
+
+
+def generate_graph(debug = True, max_value = 100, haircut_multiplier = 0.50, rescue_amount = 1):
     if debug:
         adjacency_matrix = [[0.0, 0.0, 0.0],
                             [0.0, 0.0, 0.0],
@@ -16,6 +41,7 @@ def generate_graph(debug = True, max_value = 100, rescue_amount = 1):
         adjacency_matrix, position = generate_volunteers_dilemma(
             n_entities = 3, 
             max_value = max_value, 
+            haircut_multiplier=haircut_multiplier,
             rescue_amount=rescue_amount
         )
 
@@ -135,43 +161,3 @@ def custom_eval_function(trainer, eval_workers):
 
     return metrics
 
-
-if __name__ == "__main__":
-    adjacency_matrices = []
-    positions = []
-    counts = {}
-    i = 0
-    
-    while True:
-        adjacency_matrix, position = generate_volunteers_dilemma(
-            n_entities=3, 
-            max_value=100, 
-            haircut_multiplier = 0.0 , 
-            rescue_amount= (i % 15) + 1
-        )
-        deficit_amount = int(adjacency_matrix[2,:].sum() - position[2])
-
-        if deficit_amount in counts.keys():
-            counts[deficit_amount] = counts[deficit_amount] + 1
-        else:
-            counts[deficit_amount] = 1
-
-        i += 1
-
-        if i %1000 == 0 :
-            print(f'genrations: {i}', counts)
-
-
-"""
-
-   [[0,0,0],
-    [0,0,0],
-    [3,3,0]]
-
-    [4,4,4]
-
-    allocate 2
-    4-2+3 = 5
-    reward = 1
-
-"""
