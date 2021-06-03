@@ -1,5 +1,7 @@
 import ray
-from rllib_train import get_args, setup
+import json
+from utils import get_args
+from rllib_train import setup
 from ray.rllib.agents.dqn import DQNTrainer
 from env import Volunteers_Dilemma
 
@@ -16,6 +18,7 @@ import os
 def plot(
     actual_allocations, 
     optimal_allocations, 
+    save_dir,
     title="Single Agent allocation; 1e3 eval, 1e6 training episodes",
     maximum_allocation = 7,):
 
@@ -60,21 +63,21 @@ def plot(
     ax.xaxis.tick_top()
     ax.xaxis.set_label_position('top') 
 
-    plt.savefig(f'./data/checkpoints/{run}/{title}.png')
+    plt.savefig(f'{save_dir}/{title}.png')
     plt.clf()
 
 
-def plot_hist(data, title):
+def plot_hist(data, title, save_dir):
     sn.set_theme()
     sn.histplot(data=data, shrink =0.8, bins=30)
     plt.xlabel("Allocations")
     plt.ylabel("Frequency")
     plt.title(title)
-    plt.savefig(f'./data/checkpoints/{run}/{title}_hist.png')
+    plt.savefig(f'{save_dir}/{title}_hist.png')
     plt.clf()
 
 
-def jointplot(x, y, title):
+def jointplot(x, y, title, save_dir):
 
     x_lim_max = np.max([np.max(y),10])
     y_lim_max = np.max([np.max(y),10])
@@ -87,7 +90,7 @@ def jointplot(x, y, title):
         ylim = [0, y_lim_max],
     )
     g.set_axis_labels(xlabel="agent 0", ylabel="agent 1")
-    plt.savefig(f'./data/checkpoints/{run}/{title}_jointplot.png')
+    plt.savefig(f'{save_dir}/{title}_jointplot.png')
     plt.clf()
 
 
@@ -102,28 +105,24 @@ if __name__ == "__main__":
 
     checkpoints = [50,100,150,200]
     n_rounds = 100
-    run = 31
     
-    dictionary = {
-        24:'24/DQN/DQN_Volunteers_Dilemma_5f3f1_00000_0_2021-05-31_12-10-06',   # Discrete - single agent fixed graph
-        25:'25/DQN/DQN_Volunteers_Dilemma_633af_00000_0_2021-05-31_12-10-12',   # Discrete - multi agent fixed graph
-        26:'26/DQN/DQN_Volunteers_Dilemma_6d6f3_00000_0_2021-05-31_12-10-29',   # Discrete - multi agent multiple graphs
-        27:'27/DQN/DQN_Volunteers_Dilemma_bb50e_00000_0_2021-05-31_12-19-50',   # Discrete, multi agent, multiple graphs, prosocial
-        28:'28/DQN/DQN_Volunteers_Dilemma_bcbcb_00000_0_2021-05-31_12-19-52',   # Discrete, multi-agent, multiple graphs, 3 rounds
-        29:'29/DQN/DQN_Volunteers_Dilemma_c2218_00000_0_2021-05-31_12-20-01',   # Discrete, multi-agent, multiple graphs, prosocial, 3 rounds
-        30:'30/DQN/DQN_Volunteers_Dilemma_1c8e6_00000_0_2021-06-01_13-18-38',   # Discrete - multi agent multiple graphs
-        31:'31/DQN/DQN_Volunteers_Dilemma_a4df0_00000_0_2021-06-01_13-29-36',   # Discrete - Single-agent, multi-graph
-        32:'32/DQN/DQN_Volunteers_Dilemma_57000_00000_0_2021-06-01_13-34-35',   # Discrete - Multi-agent, multi-graph
 
-
-        }
+    with open('results_dictionary.json') as f:
+        data = f.read()
+    dictionary = json.loads(data)
     
-    path = f"/itet-stor/bryayu/net_scratch/results/{dictionary[run]}"
+    path = f"/itet-stor/bryayu/net_scratch/results/{dictionary[str(args.experiment_number)]}"
 
-    if not os.path.exists(f'./data/checkpoints/{run}'):
-        os.makedirs(f'./data/checkpoints/{run}')
+    if not os.path.exists(f'./data/checkpoints/{args.experiment_number}'):
+        os.makedirs(f'./data/checkpoints/{args.experiment_number}')
+    
 
     for checkpoint in checkpoints:
+
+        save_dir = f'./data/checkpoints/{args.experiment_number}/{checkpoint}'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
         agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
         agent.restore(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}")
 
@@ -165,15 +164,15 @@ if __name__ == "__main__":
 
         for round in range(env_config.get('number_of_negotiation_rounds')):
             a0_actions = agent_0_actions[:,round]
-            plot(a0_actions, optimal_allocation, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
-            plot_hist(a0_actions,title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
+            plot(a0_actions, optimal_allocation, save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
+            plot_hist(a0_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
 
             if env_config.get('n_agents') == 2 :
                 a1_actions = agent_1_actions[:,round]
-                plot(a1_actions, optimal_allocation, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
-                plot_hist(a1_actions,title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
+                plot(a1_actions, optimal_allocation, save_dir= save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
+                plot_hist(a1_actions,save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
 
-                jointplot(a0_actions, a1_actions, title=f"Checkpoint {checkpoint} Round {round}")
+                jointplot(a0_actions, a1_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint} Round {round}")
 
 
     ray.shutdown()

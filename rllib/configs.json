@@ -23,6 +23,17 @@
         "beta": 0,
         "debug": true
     },
+    "28":{
+        "note": "Discrete, Multi agent, fixed graph, three rounds",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "seed": 123,
+        "number_of_negotiation_rounds": 3,
+        "alpha": 1,
+        "beta": 0
+    },
     "25":{
         "note": "Discrete, multi agent, fixed graph",
         "discrete": true,
@@ -72,7 +83,7 @@
         "debug": false
     },
     "33":{
-        "note": "Discrete, single agent, fixed graph, longer run time",
+        "note": "Discrete, single agent, fixed graph, longer run time, basic model",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 500,
@@ -81,7 +92,8 @@
         "number_of_negotiation_rounds": 1,
         "alpha": 1,
         "beta": 0,
-        "debug": false
+        "debug": false,
+        "basic_model": true
     },
     "34":{
         "note": "Discrete, multi agent, multi graph, basic model",
@@ -94,10 +106,11 @@
         "alpha": 1,
         "beta": 0,
         "model": "basic",
-        "debug": false
+        "debug": false,
+        "basic_model": true
     },
     "35":{
-        "note": "Discrete, multi agent, multi graph, pro-social",
+        "note": "Discrete, multi agent, multi graph, pro-social, basic model",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -107,6 +120,31 @@
         "alpha": 1,
         "beta": 1,
         "debug": false
+    },
+    "36":{
+        "note": "Discrete, multi agent, multi graph, pro-social",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 500,
+        "n_agents": 2,
+        "seed": 246,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 1,
+        "debug": false
+    },
+    "37":{
+        "note": "Discrete, multi agent, multi graph, negotiation",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 1000,
+        "n_agents": 2,
+        "seed": 123,
+        "number_of_negotiation_rounds": 3,
+        "alpha": 1,
+        "beta": 1,
+        "debug": false
     }
+
     
 }

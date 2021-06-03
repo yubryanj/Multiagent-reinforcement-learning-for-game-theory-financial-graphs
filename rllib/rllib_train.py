@@ -16,7 +16,6 @@ def setup(args):
     env_config = {
             "n_agents":             args.n_agents,
             "haircut_multiplier":   args.haircut_multiplier,
-            "episode_length":       args.episode_length,
             'discrete':             args.discrete,
             'max_system_value':     args.max_system_value, 
             'debug':                args.debug,
@@ -80,17 +79,25 @@ def setup(args):
             "epsilon_timesteps": args.stop_iters, 
         }
 
-        config['model'] = {  
+        if args.basic_model: 
+            config['model'] = {  
+                "custom_model": "basic_model",
+                "custom_model_config": {
+                }
 
-            "custom_model": "custom_discrete_action_model_with_masking",
-            "custom_model_config": {
-                'embedding_size' : 32,
-                'num_embeddings': args.max_system_value,
-            },
-            # "custom_action_dist": "custom_action_distribution",
-            # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
+            }
+        else:
+            config['model'] = {  
 
-        }
+                "custom_model": "custom_discrete_action_model_with_masking",
+                "custom_model_config": {
+                    'embedding_size' : 32,
+                    'num_embeddings': args.max_system_value,
+                },
+                # "custom_action_dist": "custom_action_distribution",
+                # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
+
+            }
 
         config['seed'] = args.seed
 
