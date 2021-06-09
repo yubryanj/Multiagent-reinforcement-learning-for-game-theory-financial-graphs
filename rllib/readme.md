@@ -2,9 +2,9 @@
 
 ## Usage:
 Experiments are defined in configs.json.  After thus defined, they can be easily ran.  For example, running experiment 39 is as follows
-'''
+```
 python rllib_train.py --experiment-number 39
-'''
+```
 
 
 
