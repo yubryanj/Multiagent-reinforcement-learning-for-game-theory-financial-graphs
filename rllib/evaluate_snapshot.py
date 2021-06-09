@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     config['explore'] = False
 
-    checkpoints = [50,100,150,200]
+    checkpoints = [1000]
     n_rounds = 100
     
 

@@ -134,13 +134,25 @@
         "debug": false
     },
     "37":{
-        "note": "Discrete, multi agent, multi graph, negotiation",
+        "note": "TODO: WRITE ME",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 1000,
         "n_agents": 2,
         "seed": 123,
         "number_of_negotiation_rounds": 3,
+        "alpha": 1,
+        "beta": 1,
+        "debug": false
+    },
+    "38":{
+        "note": "TODO: WRITE ME",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 1000,
+        "n_agents": 2,
+        "seed": 123,
+        "number_of_negotiation_rounds": 1,
         "alpha": 1,
         "beta": 1,
         "debug": false

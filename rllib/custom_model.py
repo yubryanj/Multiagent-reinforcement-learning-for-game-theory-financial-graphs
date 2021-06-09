@@ -133,8 +133,11 @@ class basic_model_with_masking(TorchModelV2, nn.Module):
     def forward(self, input_dict, state, seq_lens):
         self._output = input_dict.get('obs').get('real_obs').float()
         x = self.layer1(self._output)
+        x = nn.functional.relu(x)
         x = self.layer2(x)
+        x = nn.functional.relu(x)
         x = self.layer3(x)
+        x = nn.functional.relu(x)
         logits = self.action(x)
 
         action_mask = input_dict.get('obs').get('action_mask')
