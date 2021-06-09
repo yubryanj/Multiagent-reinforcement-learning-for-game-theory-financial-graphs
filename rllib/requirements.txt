@@ -1,0 +1,12 @@
+gym==0.18.0
+matplotlib @ file:///tmp/build/80754af9/matplotlib-suite_1613407855456/work
+numpy @ file:///tmp/build/80754af9/numpy_and_numpy_base_1603479632437/work
+ray==1.2.0
+tensorboard==2.4.1
+tensorboard-plugin-wit==1.8.0
+tensorboardX==2.1
+torch==1.7.1
+torchaudio==0.7.0a0+a853dff
+torchvision==0.8.2
+tornado @ file:///tmp/build/80754af9/tornado_1606942283357/work
+tqdm @ file:///tmp/build/80754af9/tqdm_1611857934208/work
