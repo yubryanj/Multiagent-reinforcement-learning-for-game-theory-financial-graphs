@@ -22,8 +22,13 @@ def plot(
     title="Single Agent allocation; 1e3 eval, 1e6 training episodes",
     maximum_allocation = 7,):
 
+    """ 
+        TODO: Update this so that the total column is another heatmap
+        https://stackoverflow.com/questions/33379261/how-can-i-have-a-bar-next-to-python-seaborn-heatmap-which-shows-the-summation-of
+    """
+
     n_rows = maximum_allocation + 2
-    n_cols = maximum_allocation + 2
+    n_cols = maximum_allocation + 1
     n_cells = n_rows * n_cols
     confusion_matrix = np.zeros((n_rows, n_cols))
     for actual,optimal in zip(actual_allocations, optimal_allocations):
@@ -32,26 +37,27 @@ def plot(
 
     for i in range(confusion_matrix.shape[0]):
         confusion_matrix[i,-1] = confusion_matrix[i,:-1].sum()
-        confusion_matrix[-1,i] = confusion_matrix[:-1,i].sum()
+    for j in range(confusion_matrix.shape[1]):
+        confusion_matrix[-1,j] = confusion_matrix[:-1,j].sum()
 
     print(confusion_matrix)
 
 
     df_cm = pd.DataFrame(confusion_matrix, index = [i for i in range(n_rows-1)] + ['Total'],
-                      columns = [i for i in range(n_cols-1)] + ['Total'])
+                      columns = [i for i in range(1, n_cols)] + ['Total'])
 
     plt.figure(figsize = (10,7))
     plt.title(title)
     plt.ylabel("Actual Allocation")
-    plt.xlabel("Optimal Allocation")
+    plt.xlabel("Rescue Amount")
     ax = sn.heatmap(df_cm, annot=True, fmt='g', cmap="Blues", annot_kws={"fontsize":8}, cbar=False)
-    ax.set(xlabel='Optimal Allocation', ylabel='Actual Allocation')
+    ax.set(xlabel='Rescue Amount', ylabel='Actual Allocation')
 
     quadmesh = ax.findobj(QuadMesh)[0]
     facecolors = quadmesh.get_facecolors()
 
     # make colors of the last column white
-    facecolors[np.arange(n_rows-1,n_cells,n_cols)] = np.array([1,1,1,1])
+    facecolors[np.arange(n_cols-1,n_cells,n_cols)] = np.array([1,1,1,1])
     facecolors[np.arange(n_cells-n_cols,n_cells)] = np.array([1,1,1,1])
 
     quadmesh.set_facecolors = facecolors
@@ -94,6 +100,22 @@ def jointplot(x, y, title, save_dir):
     plt.clf()
 
 
+def plot_table(
+        title, 
+        percentage_saved, 
+        percentage_of_optimal_allocation_if_saved
+    ):
+    fig, ax =plt.subplots(1,1)
+    data=[["Percentage Saved", f'{percentage_saved} %'],
+        ["Percentage of optimal allocation if saved", f'{percentage_of_optimal_allocation_if_saved} %']]
+    
+    ax.axis('tight')
+    ax.axis('off')
+    ax.table(cellText=data,loc="center")
+
+    plt.savefig(f'{save_dir}/{title}.png')
+    plt.clf()
+
     
 
 if __name__ == "__main__":
@@ -103,7 +125,7 @@ if __name__ == "__main__":
 
     config['explore'] = False
 
-    checkpoints = [1000]
+    checkpoints = [200,250,300,350,400,450,500]
     n_rounds = 100
     
 
@@ -116,6 +138,8 @@ if __name__ == "__main__":
     if not os.path.exists(f'./data/checkpoints/{args.experiment_number}'):
         os.makedirs(f'./data/checkpoints/{args.experiment_number}')
     
+    saved_rounds = 0
+    percentage_of_optimal_if_saved = []
 
     for checkpoint in checkpoints:
 
@@ -149,8 +173,12 @@ if __name__ == "__main__":
                     actions[1] = action_1
                     a_1.append(action_1)
 
+                obs, _, _, info = env.step(actions)
 
-                obs, _, _, _ = env.step(actions)
+                # Both agnets should have the same information
+                if info.get(0).get('ending_system_value') == 100:
+                    saved_rounds += 1
+                    percentage_of_optimal_if_saved.append(info.get(0).get('percentage_of_optimal_allocation'))
 
             agent_0_actions.append(a_0)
             agent_1_actions.append(a_1)
@@ -174,5 +202,10 @@ if __name__ == "__main__":
 
                 jointplot(a0_actions, a1_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint} Round {round}")
 
+        percentage_of_optimal_if_saved
+        plot_table(
+            title=f'Checkpoint {checkpoint} Statistics',
+            percentage_saved=saved_rounds/n_rounds * 100,
+            percentage_of_optimal_allocation_if_saved= np.mean(percentage_of_optimal_if_saved) * 100)
 
     ray.shutdown()

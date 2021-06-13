@@ -19,8 +19,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # Placeholder to get observation size
         self.adjacency_matrix, self.position = generate_graph(
-            debug = config.get('debug'), 
-            max_value = config.get('max_system_value')
+            config = self.config
         )
 
         if config['discrete']:
@@ -76,10 +75,11 @@ class Volunteers_Dilemma(MultiAgentEnv):
         # Reset the environment
         # TODO: Remove the rescue amounts -- they're being used for testing if the network can learn
         # Across different actions
+        rescue_amount = (self.iteration % 4) + 3
+
         self.adjacency_matrix, self.position = generate_graph(
-            debug = self.config.get('debug'), 
-            max_value = self.config.get('max_system_value'), 
-            rescue_amount = (self.iteration % 7) + 1    # TODO: remove this hard-coding
+            config = self.config,
+            rescue_amount = rescue_amount    # TODO: remove this hard-coding
             )
 
         # Retrieve the observations of the resetted environment        
@@ -112,7 +112,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 'ending_system_value': ending_system_value,
                 'optimal_allocation': optimal_allocation,
                 'actual_allocation': actions[agent_identifier],
-                'percentage_of_optimal_allocation': actions[agent_identifier]/optimal_allocation,
+                'percentage_of_optimal_allocation': sum(list(actions.values()))/optimal_allocation,
                 'agent_0_position': self.position[0],
             }
 

@@ -30,8 +30,11 @@ class MyCallbacks(DefaultCallbacks):
         pass
 
 
-def generate_graph(debug = True, max_value = 100, haircut_multiplier = 0.50, rescue_amount = 1):
-    if debug:
+def generate_graph(
+    config,
+    rescue_amount = 1
+    ):
+    if config.get('debug'):
         adjacency_matrix = [[0.0, 0.0, 0.0],
                             [0.0, 0.0, 0.0],
                             [16.0, 16.0, 0.0]]
@@ -39,81 +42,330 @@ def generate_graph(debug = True, max_value = 100, haircut_multiplier = 0.50, res
         position = [35.0, 35.0, 30.0]
         adjacency_matrix = np.asarray(adjacency_matrix)
         position = np.asarray(position)
-    else:
+    elif config.get('scenario') == 'volunteers dilemma':
         adjacency_matrix, position = generate_volunteers_dilemma(
-            n_entities = 3, 
-            max_value = max_value, 
-            haircut_multiplier=haircut_multiplier,
+            config,
             rescue_amount=rescue_amount
         )
+    elif config.get('scenario') == 'only one can bailout':
+        adjacency_matrix, position = generate_only_one_can_bailout(
+            config,
+            rescue_amount=rescue_amount
+        )
+    elif config.get('scenario') == 'no one can bailout':
+        adjacency_matrix, position = generate_no_one_can_bailout(
+            config,
+            rescue_amount=rescue_amount
+        )
+    elif config.get('scenario') == 'no point to bailout':
+                adjacency_matrix, position = generate_no_point_to_bailout(
+            config,
+            rescue_amount=rescue_amount
+        )
+    else:
+        assert False, "Invalid scenario requested.  Select amongst 'volunteers dilemma', 'only one can bailout', ' no one can bailout', 'no point to bailout'"
 
 
     return adjacency_matrix, position
 
 
-def generate_volunteers_dilemma(n_entities, max_value = 100, haircut_multiplier = 0.50 , rescue_amount = 1):
+def generate_random_adjacency_matrix(
+    config,
+    position,
+    rescue_amount
+    ):
+    adjacency_matrix = np.zeros((config.get('n_entities'), config.get('n_entities')))
 
-    n_agents = n_entities - 1 
+    total_debt = position[2] + rescue_amount
+    adjacency_matrix[2,:2] = np.random.multinomial(
+        total_debt, 
+        np.ones(config.get('n_agents'))
+        /(config.get('n_agents')),size=1)[0]
+
+    return adjacency_matrix
+    
+
+def volunteers_graph_generator(
+    config,
+    number_of_saviors,
+    rescue_amount,
+    ):
+
+    position_generated = False
+    while not position_generated:
+        position = np.random.multinomial(
+            config.get('max_system_value'), 
+            np.ones(config.get('n_entities'))
+            /config.get('n_entities'), size=1)[0]
+        position_generated = (position > 1).all()
+
+    # Generate debts
+    adjacency_matrix = generate_random_adjacency_matrix(
+        config,
+        position,
+        rescue_amount
+    )
+
+
+    position = position.astype(float)
+
+    return position, adjacency_matrix
+
+
+def only_n_can_rescue(
+    config,
+    number_of_saviors,
+    rescue_amount,
+    ):
+    
+    position = np.zeros((config.get('n_entities')))
+
+    banks = np.arange(0,config.get('n_agents'))
+    np.random.shuffle(banks)
+
+    saviors = banks[:number_of_saviors]
+    non_saviors = banks[number_of_saviors:]
+    
+    for bank_id in non_saviors:
+        if rescue_amount > 1:
+            position[bank_id] = np.random.randint(
+                1,
+                rescue_amount-1
+            )
+        else:
+            position[bank_id] = 0
+
+    for bank_id in saviors:
+        position[bank_id] = np.random.randint(
+            rescue_amount + 1, 
+            config.get('max_system_value')-1
+        )
+
+    # Distressed bank
+    position[2] = config.get('max_system_value') - position[:2].sum()
+
+    # Generate debts
+    adjacency_matrix = generate_random_adjacency_matrix(
+        config,
+        position,
+        rescue_amount
+    )
+
+    position = position.astype(float)
+
+    return position, adjacency_matrix
+
+
+def no_point_to_bailout(
+    config,
+    number_of_saviors,
+    rescue_amount,
+    ):
+        
+    position_generated = False
+    while not position_generated:
+        position = np.random.multinomial(
+            config.get('max_system_value'), 
+            np.ones(config.get('n_entities'))
+            /config.get('n_entities'), size=1)[0]
+        position_generated = (position > 1).all()
+
+
+    adjacency_matrix = np.zeros((config.get('n_entities'), config.get('n_entities')))
+    total_debt = position[2] + rescue_amount
+    adjacency_matrix[2,:2] = np.random.multinomial(
+        total_debt, 
+        np.ones(config.get('n_agents'))/(config.get('n_agents')),size=1)[0]
+
+
+    
+
+    position = position.astype(float)
+
+    return position, adjacency_matrix
+
+def compute_number_of_defaulted_banks(
+    net_positions
+    ):
+
+    return (net_positions < 0).sum()
+
+
+def compute_number_of_savior_banks(
+    position,
+    adjacency_matrix
+    ):
+    net_positions = compute_net_position(position, adjacency_matrix)
+    savior_banks = [bank_id for bank_id, net_position in enumerate(net_positions[:2]) if net_position > np.abs(net_positions[2])]
+
+    return len(savior_banks), savior_banks
+
+
+def compute_incentives(
+    position,
+    adjacency_matrix,
+    config,
+    cost_of_rescue
+    ):
+    inflows = adjacency_matrix[2,:2]
+    rescued_positions = position[:config.get('n_agents')] + inflows - cost_of_rescue
+
+    # Positions if not rescued
+    total_debt = np.sum(adjacency_matrix[2,:2])
+    inflows = ((adjacency_matrix[2,:2] / total_debt) * config.get('haircut_multiplier') * position[2])
+    not_rescued_positions = position[:config.get('n_agents')] + inflows
+
+    # Individual_incentives
+    incentives = rescued_positions - not_rescued_positions - cost_of_rescue
+
+    return incentives
+
+
+def compute_net_position(
+    position, 
+    adjacency_matrix
+    ):
+    return position - np.sum(adjacency_matrix, axis=1)
+
+
+def each_savior_has_incentive(
+    incentives, 
+    savior_banks
+    ):
+    conditions_met = True
+    for savior_bank_id in savior_banks:
+        if incentives[savior_bank_id] < 0:
+            conditions_met = False
+
+    return conditions_met
+
+
+def no_savior_has_incentive(
+    incentives, 
+    savior_banks
+    ):
+    conditions_met = True
+    for savior_bank_id in savior_banks:
+        if incentives[savior_bank_id] > 0:
+            conditions_met = False
+
+    return conditions_met
+
+
+def create_environment(
+    config,
+    required_number_of_savior_banks,
+    incentive_function,
+    generate,
+    rescue_amount = 1,
+    ):
 
     # Indicator if a valid graph was generated
     generated = False
 
     while not generated:
-        # Sample a distribution for each bank
-        position_generated = False
-        while not position_generated:
-            position = np.random.multinomial(max_value, np.ones(n_entities)/n_entities, size=1)[0]
-            position_generated = (position > 1).all()
+        position, adjacency_matrix = generate(
+            config, 
+            required_number_of_savior_banks,
+            rescue_amount
+        )
 
-        # Initialize a zero'd out adjacency matrix
-        adjacency_matrix = np.zeros((n_entities, n_entities))
-
-        # Generate debts
-        total_debt = np.random.randint(position[2] + 1 , position[2] + position[:2].min())
-        adjacency_matrix[2,:2] = np.random.multinomial(total_debt, np.ones(n_agents )/(n_agents),size=1)[0]
-
-        # adjacency_matrix = adjacency_matrix.tolist()
-        position = position.astype(float)
-
+        net_positions   = compute_net_position(position, adjacency_matrix)
+        cost_of_rescue  = -net_positions[2]
+        incentives      = compute_incentives(position, adjacency_matrix, config, cost_of_rescue)
+        n_savior_banks, savior_banks  = compute_number_of_savior_banks(position, adjacency_matrix)
 
         """Conditions for successful generation"""
-
-        net_positions = position - np.sum(adjacency_matrix, axis=1)
-        savior_banks = [bank_id for bank_id, net_position in enumerate(net_positions[:2]) if net_position > np.abs(net_positions[2])]
-
         # We have at least one distressed bank
         distressed_bank_generated = True if net_positions[2] < 0 else False
 
         # Each bank can save the distressed bank individually
-        sufficient_savior_banks = True if len(savior_banks) == (n_agents) else False
+        sufficient_savior_banks = True if n_savior_banks == required_number_of_savior_banks else False
 
-        # Position if rescued
-        cost_of_rescue = -net_positions[2]
-        inflows = adjacency_matrix[2,:2]
-        rescued_positions = position[:n_agents] + inflows - cost_of_rescue
-
-        # Positions if not rescued
-        inflows = ((adjacency_matrix[2,:2] / total_debt) * haircut_multiplier * position[2])
-        not_rescued_positions = position[:n_agents] + inflows
-
-        # Individual_incentives
-        incentives = rescued_positions - not_rescued_positions - cost_of_rescue
-
-        each_savior_has_incentive = (incentives > 0 ).all()
+        incentives_met = incentive_function(incentives, savior_banks)
 
         if  distressed_bank_generated \
             and sufficient_savior_banks \
-            and each_savior_has_incentive \
+            and incentives_met \
             and rescue_amount == cost_of_rescue:
             generated = True
 
     return adjacency_matrix, position
 
 
+def generate_volunteers_dilemma(
+    config,
+    rescue_amount = 1
+    ):
+
+    adjacency_matrix, position = create_environment(
+        config, 
+        required_number_of_savior_banks= config.get('n_agents'), 
+        incentive_function = each_savior_has_incentive,
+        generate=volunteers_graph_generator,
+        rescue_amount = rescue_amount,
+    )
+
+    return adjacency_matrix, position
+
+
+def generate_only_one_can_bailout(
+    config,
+    rescue_amount = 2
+    ):
+
+    adjacency_matrix, position = create_environment(
+        config,
+        required_number_of_savior_banks = 1,
+        incentive_function = each_savior_has_incentive,
+        generate = only_n_can_rescue,
+        rescue_amount = rescue_amount
+    )
+
+    return adjacency_matrix, position
+
+
+def generate_no_one_can_bailout(
+    config,
+    required_n_savior_banks = 0,
+    rescue_amount = 1
+    ):
+    
+    adjacency_matrix, position = create_environment(
+        config,
+        required_number_of_savior_banks = 0,
+        incentive_function = each_savior_has_incentive,
+        generate = only_n_can_rescue,
+        rescue_amount = rescue_amount
+    )
+    return adjacency_matrix, position
+
+
+def generate_no_point_to_bailout(
+    config,
+    required_n_savior_banks = 2,
+    rescue_amount = 1
+    ):
+
+    # TODO: Check if this is correct!  The generated graph and the incentive structure may not align.
+    # Forced by using haircut multiplier == 1.0
+    adjacency_matrix, position = create_environment(
+        config,
+        required_number_of_savior_banks = required_n_savior_banks,
+        incentive_function = no_savior_has_incentive,
+        generate = volunteers_graph_generator,
+        rescue_amount = rescue_amount
+    )       
+
+    return adjacency_matrix, position
+
 
 from ray.rllib.evaluation.metrics import collect_episodes, summarize_episodes
 
-def custom_eval_function(trainer, eval_workers):
+def custom_eval_function(
+    trainer, 
+    eval_workers
+    ):
     """Example of a custom evaluation function.
     Args:
         trainer (Trainer): trainer class to evaluate.
@@ -186,6 +438,7 @@ def get_args():
     parser.add_argument("--number-of-negotiation-rounds", type=int, default=1)
     parser.add_argument("--alpha",      type=int, default=1)    # Prosocial parameter
     parser.add_argument("--beta",       type=int, default=0)    # Prosocial parameter
+    parser.add_argument("--scenario",       type=str, default="volunteers dilemma")    # Prosocial parameter
     args = parser.parse_args()
     args.log_dir = f"/itet-stor/bryayu/net_scratch/results/{args.experiment_number}"
 

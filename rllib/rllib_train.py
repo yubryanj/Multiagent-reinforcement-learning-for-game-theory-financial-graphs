@@ -9,12 +9,10 @@ from utils import custom_eval_function, MyCallbacks, get_args
 
 
 
-
-
-
 def setup(args):
     env_config = {
             "n_agents":             args.n_agents,
+            "n_entities":           args.n_agents + 1,
             "haircut_multiplier":   args.haircut_multiplier,
             'discrete':             args.discrete,
             'max_system_value':     args.max_system_value, 
@@ -22,6 +20,7 @@ def setup(args):
             'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
             'alpha':                args.alpha,
             'beta':                 args.beta,
+            "scenario":             args.scenario
         }
 
     env = Volunteers_Dilemma(env_config)
@@ -30,7 +29,6 @@ def setup(args):
     
     ModelCatalog.register_custom_model("custom_discrete_action_model_with_masking", Custom_discrete_model_with_masking)
     ModelCatalog.register_custom_model("basic_model", basic_model_with_masking)
-    # ModelCatalog.register_custom_action_dist("custom_action_distribution", Custom_Distribution)
 
     config = {
         "env": Volunteers_Dilemma,  
@@ -99,7 +97,8 @@ def setup(args):
 
             }
 
-        config['seed'] = args.seed
+        if args.n_samples == 1:
+            config['seed'] = args.seed
 
     stop = {
         "training_iteration"    : args.stop_iters,
@@ -123,7 +122,6 @@ if __name__ == "__main__":
                         stop=stop, 
                         local_dir=args.log_dir, 
                         checkpoint_freq = args.checkpoint_frequency,
-                        # checkpoint_at_end = True,
                         num_samples = args.n_samples,
                         restore = args.restore,
                     )

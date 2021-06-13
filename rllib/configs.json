@@ -125,7 +125,7 @@
         "note": "Discrete, multi agent, multi graph, pro-social",
         "discrete": true,
         "run" : "DQN",
-        "stop_iters": 500,
+        "stop_iters": 200,
         "n_agents": 2,
         "seed": 246,
         "number_of_negotiation_rounds": 1,
@@ -169,7 +169,74 @@
         "beta": 0,
         "debug": false,
         "basic_model": true
+    },
+    "40":{
+        "note": "Discrete, multi agent, multi graph, pro-social, multiple samples",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 1,
+        "debug": false,
+        "n_samples": 5
+    },
+    "41":{
+        "note": "Discrete, multi agent, multi graph",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 0,
+        "debug": false,
+        "n_samples": 5
+    },
+    "42":{
+        "note": "Discrete, multi agent, multi graph, generate_only_one_can_bailout",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 0,
+        "debug": false,
+        "n_samples": 1,
+        "scenario":"only one can bailout"
+    },
+    "43":{
+        "note": "Discrete, multi agent, multi graph, no one can bailout",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 0,
+        "debug": false,
+        "n_samples": 1,
+        "scenario":"no one can bailout"
+    },
+    "44":{
+        "note": "Discrete, multi agent, multi graph, no one can bailout",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 0,
+        "debug": false,
+        "n_samples": 1,
+        "scenario":"no point to bailout",
+        "haircut_multiplier":1.0
     }
+
+
+
 
     
 }
