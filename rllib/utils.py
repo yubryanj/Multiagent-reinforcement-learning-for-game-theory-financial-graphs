@@ -32,7 +32,7 @@ class MyCallbacks(DefaultCallbacks):
 
 def generate_graph(
     config,
-    rescue_amount = 1
+    rescue_amount = 3
     ):
     if config.get('debug'):
         adjacency_matrix = [[0.0, 0.0, 0.0],
@@ -118,6 +118,8 @@ def only_n_can_rescue(
     rescue_amount,
     ):
     
+    # TODO: DEBUG, there's a bug here for experiment 42
+
     position = np.zeros((config.get('n_entities')))
 
     banks = np.arange(0,config.get('n_agents'))
@@ -125,24 +127,33 @@ def only_n_can_rescue(
 
     saviors = banks[:number_of_saviors]
     non_saviors = banks[number_of_saviors:]
+    remaining_amount_to_allocate = config.get('max_system_value')
     
-    for bank_id in non_saviors:
-        if rescue_amount > 1:
-            position[bank_id] = np.random.randint(
+    position_generated = False
+    while not position_generated:
+        for bank_id in non_saviors:
+            allocation = np.random.randint(
                 1,
                 rescue_amount-1
             )
-        else:
-            position[bank_id] = 0
+            position[bank_id] = allocation
+            remaining_amount_to_allocate -= allocation
 
-    for bank_id in saviors:
-        position[bank_id] = np.random.randint(
-            rescue_amount + 1, 
-            config.get('max_system_value')-1
-        )
+                
+        # Allocate the remainder including distressed bank
+        n_to_allocate_to = len(saviors) + 1
+        allocations = np.random.multinomial(
+            remaining_amount_to_allocate, 
+            np.ones(n_to_allocate_to)/n_to_allocate_to
+            , size=1)[0]
+        for bank_id, allocation in zip(saviors,allocations[:-1]):
+            position[bank_id] = allocation
 
-    # Distressed bank
-    position[2] = config.get('max_system_value') - position[:2].sum()
+        # Allocate to the distressed bank
+        position[2] = allocations[-1]
+
+        if position.sum() <= config.get('max_system_value') and (position>0).all():
+            position_generated = True
 
     # Generate debts
     adjacency_matrix = generate_random_adjacency_matrix(
@@ -177,12 +188,10 @@ def no_point_to_bailout(
         total_debt, 
         np.ones(config.get('n_agents'))/(config.get('n_agents')),size=1)[0]
 
-
-    
-
     position = position.astype(float)
 
     return position, adjacency_matrix
+
 
 def compute_number_of_defaulted_banks(
     net_positions
@@ -284,10 +293,14 @@ def create_environment(
 
         incentives_met = incentive_function(incentives, savior_banks)
 
+        #  position falls within 0, 100 in total
+        valid_net_positions     = (net_positions[:-1]>0).all() and (net_positions<config.get('max_system_value')).all()        
+
         if  distressed_bank_generated \
             and sufficient_savior_banks \
             and incentives_met \
-            and rescue_amount == cost_of_rescue:
+            and rescue_amount == cost_of_rescue\
+            and valid_net_positions:
             generated = True
 
     return adjacency_matrix, position
@@ -328,7 +341,7 @@ def generate_only_one_can_bailout(
 def generate_no_one_can_bailout(
     config,
     required_n_savior_banks = 0,
-    rescue_amount = 1
+    rescue_amount = 3
     ):
     
     adjacency_matrix, position = create_environment(
@@ -344,7 +357,7 @@ def generate_no_one_can_bailout(
 def generate_no_point_to_bailout(
     config,
     required_n_savior_banks = 2,
-    rescue_amount = 1
+    rescue_amount = 3
     ):
 
     # TODO: Check if this is correct!  The generated graph and the incentive structure may not align.

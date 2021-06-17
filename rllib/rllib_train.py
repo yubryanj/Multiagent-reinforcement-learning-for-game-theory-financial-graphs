@@ -123,7 +123,7 @@ if __name__ == "__main__":
                         local_dir=args.log_dir, 
                         checkpoint_freq = args.checkpoint_frequency,
                         num_samples = args.n_samples,
-                        restore = args.restore,
+                        # restore = args.restore,
                     )
 
     if args.as_test:

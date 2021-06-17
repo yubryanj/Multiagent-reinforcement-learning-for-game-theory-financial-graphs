@@ -20,7 +20,7 @@ def plot(
     optimal_allocations, 
     save_dir,
     title="Single Agent allocation; 1e3 eval, 1e6 training episodes",
-    maximum_allocation = 7,):
+    maximum_allocation = 6,):
 
     """ 
         TODO: Update this so that the total column is another heatmap
@@ -28,12 +28,12 @@ def plot(
     """
 
     n_rows = maximum_allocation + 2
-    n_cols = maximum_allocation + 1
+    n_cols = maximum_allocation + 1 - 2 # Starts at 3
     n_cells = n_rows * n_cols
     confusion_matrix = np.zeros((n_rows, n_cols))
     for actual,optimal in zip(actual_allocations, optimal_allocations):
         if actual >=0 and actual <=7:
-            confusion_matrix[int(actual),int(optimal)] += 1
+            confusion_matrix[int(actual),int(optimal-1-2)] += 1
 
     for i in range(confusion_matrix.shape[0]):
         confusion_matrix[i,-1] = confusion_matrix[i,:-1].sum()
@@ -44,7 +44,7 @@ def plot(
 
 
     df_cm = pd.DataFrame(confusion_matrix, index = [i for i in range(n_rows-1)] + ['Total'],
-                      columns = [i for i in range(1, n_cols)] + ['Total'])
+                      columns = [i for i in range(3, 2 + n_cols)] + ['Total'])
 
     plt.figure(figsize = (10,7))
     plt.title(title)
@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     config['explore'] = False
 
-    checkpoints = [200,250,300,350,400,450,500]
+    checkpoints = [150,200]
     n_rounds = 100
     
 
@@ -133,79 +133,84 @@ if __name__ == "__main__":
         data = f.read()
     dictionary = json.loads(data)
     
-    path = f"/itet-stor/bryayu/net_scratch/results/{dictionary[str(args.experiment_number)]}"
-
     if not os.path.exists(f'./data/checkpoints/{args.experiment_number}'):
         os.makedirs(f'./data/checkpoints/{args.experiment_number}')
-    
-    saved_rounds = 0
-    percentage_of_optimal_if_saved = []
 
-    for checkpoint in checkpoints:
+    runs = dictionary[str(args.experiment_number)]
 
-        save_dir = f'./data/checkpoints/{args.experiment_number}/{checkpoint}'
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+    for i, run in enumerate(runs):
+        if not os.path.exists(f'./data/checkpoints/{args.experiment_number}/{i}'):
+            os.makedirs(f'./data/checkpoints/{args.experiment_number}/{i}')
 
-        agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
-        agent.restore(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}")
+        path = f"/itet-stor/bryayu/net_scratch/results/{run}"
+        saved_rounds = 0
+        percentage_of_optimal_if_saved = []
 
-        # instantiate env class
-        env = Volunteers_Dilemma(env_config)
+        for checkpoint in checkpoints:
 
-        agent_0_actions = []
-        agent_1_actions = []
-        optimal_allocation = []
+            save_dir = f'./data/checkpoints/{args.experiment_number}/{i}/{checkpoint}'
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
 
-        for i in range(n_rounds):
-            a_0 = []
-            a_1 = []
-            obs = env.reset()
+            agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
+            agent.restore(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}")
+
+            # instantiate env class
+            env = Volunteers_Dilemma(env_config)
+
+            agent_0_actions = []
+            agent_1_actions = []
+            optimal_allocation = []
+
+            for i in range(n_rounds):
+                a_0 = []
+                a_1 = []
+                obs = env.reset()
+                for round in range(env_config.get('number_of_negotiation_rounds')):
+                    actions = {}
+                    
+                    action_0 = agent.compute_action(obs[0], policy_id='policy_0')
+                    actions[0] = action_0
+                    a_0.append(action_0)
+                    
+                    if env_config.get('n_agents') == 2:
+                        action_1 = agent.compute_action(obs[1], policy_id='policy_1')
+                        actions[1] = action_1
+                        a_1.append(action_1)
+
+                    obs, _, _, info = env.step(actions)
+
+                    # Both agnets should have the same information
+                    if info.get(0).get('ending_system_value') == 100:
+                        saved_rounds += 1
+                        percentage_of_optimal_if_saved.append(info.get(0).get('percentage_of_optimal_allocation'))
+
+                agent_0_actions.append(a_0)
+                agent_1_actions.append(a_1)
+                optimal_allocation.append(-obs[0]['real_obs'][2])
+            
+            pass
+
+            agent_0_actions = np.array(agent_0_actions)
+            agent_1_actions = np.array(agent_1_actions)
+            optimal_allocations = np.array(optimal_allocation)
+
             for round in range(env_config.get('number_of_negotiation_rounds')):
-                actions = {}
-                
-                action_0 = agent.compute_action(obs[0], policy_id='policy_0')
-                actions[0] = action_0
-                a_0.append(action_0)
-                
-                if env_config.get('n_agents') == 2:
-                    action_1 = agent.compute_action(obs[1], policy_id='policy_1')
-                    actions[1] = action_1
-                    a_1.append(action_1)
+                a0_actions = agent_0_actions[:,round]
+                plot(a0_actions, optimal_allocation, save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
+                plot_hist(a0_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
 
-                obs, _, _, info = env.step(actions)
+                if env_config.get('n_agents') == 2 :
+                    a1_actions = agent_1_actions[:,round]
+                    plot(a1_actions, optimal_allocation, save_dir= save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
+                    plot_hist(a1_actions,save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
 
-                # Both agnets should have the same information
-                if info.get(0).get('ending_system_value') == 100:
-                    saved_rounds += 1
-                    percentage_of_optimal_if_saved.append(info.get(0).get('percentage_of_optimal_allocation'))
+                    jointplot(a0_actions, a1_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint} Round {round}")
 
-            agent_0_actions.append(a_0)
-            agent_1_actions.append(a_1)
-            optimal_allocation.append(-obs[0]['real_obs'][2])
-        
-        pass
-
-        agent_0_actions = np.array(agent_0_actions)
-        agent_1_actions = np.array(agent_1_actions)
-        optimal_allocations = np.array(optimal_allocation)
-
-        for round in range(env_config.get('number_of_negotiation_rounds')):
-            a0_actions = agent_0_actions[:,round]
-            plot(a0_actions, optimal_allocation, save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
-            plot_hist(a0_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 0, Round {round}")
-
-            if env_config.get('n_agents') == 2 :
-                a1_actions = agent_1_actions[:,round]
-                plot(a1_actions, optimal_allocation, save_dir= save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
-                plot_hist(a1_actions,save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
-
-                jointplot(a0_actions, a1_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint} Round {round}")
-
-        percentage_of_optimal_if_saved
-        plot_table(
-            title=f'Checkpoint {checkpoint} Statistics',
-            percentage_saved=saved_rounds/n_rounds * 100,
-            percentage_of_optimal_allocation_if_saved= np.mean(percentage_of_optimal_if_saved) * 100)
+            percentage_of_optimal_if_saved
+            plot_table(
+                title=f'Checkpoint {checkpoint} Statistics',
+                percentage_saved=saved_rounds/n_rounds * 100,
+                percentage_of_optimal_allocation_if_saved= np.mean(percentage_of_optimal_if_saved) * 100)
 
     ray.shutdown()
