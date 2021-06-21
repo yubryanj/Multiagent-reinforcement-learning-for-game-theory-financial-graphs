@@ -75,6 +75,7 @@ class Custom_discrete_model_with_masking(TorchModelV2, nn.Module):
         liabilities     = self.embed_liabilities( input_dict.get('obs').get('liabilities'))
         net_position    = self.embed_net_position(input_dict.get('obs').get('net_position'))
         rescue_amount   = self.embed_rescue_amount(input_dict.get('obs').get('rescue_amount'))
+        # Inflows
         last_offer      = self.embed_last_offer(  input_dict.get('obs').get('last_offer'))
         final_round     = self.embed_final_round( input_dict.get('obs').get('final_round'))
 

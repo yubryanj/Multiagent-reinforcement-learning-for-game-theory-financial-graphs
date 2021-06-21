@@ -8,7 +8,6 @@ from env import Volunteers_Dilemma
 from utils import custom_eval_function, MyCallbacks, get_args
 
 
-
 def setup(args):
     env_config = {
             "n_agents":             args.n_agents,

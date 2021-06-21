@@ -7,6 +7,7 @@ import numpy as np
 import ray
 import argparse
 import json
+import os
 
 
 class MyCallbacks(DefaultCallbacks):
@@ -15,19 +16,22 @@ class MyCallbacks(DefaultCallbacks):
                        policies: Dict[str, Policy], episode: MultiAgentEpisode,
                        env_index: int, **kwargs):
 
-        if worker.env_context['discrete']:
-            episode.custom_metrics[f'current_epsilon'] = policies['policy_0'].exploration.get_info()['cur_epsilon']
+        # if worker.env_context['discrete']:
+        #     episode.custom_metrics[f'current_epsilon'] = policies['policy_0'].exploration.get_info()['cur_epsilon']
         
         
-        episode.custom_metrics[f'starting_system_value'] = episode.last_info_for(0)['starting_system_value']
-        episode.custom_metrics[f'ending_system_value'] = episode.last_info_for(0)['ending_system_value']
-        episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
-        episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
+        # episode.custom_metrics[f'starting_system_value'] = episode.last_info_for(0)['starting_system_value']
+        # episode.custom_metrics[f'ending_system_value'] = episode.last_info_for(0)['ending_system_value']
+        # episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
+        # episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
 
-        for i in range(base_env.envs[0].config['n_agents']):
-            episode.custom_metrics[f'{i}_actual_allocation'] = episode.last_info_for(i)['actual_allocation']
+        # for i in range(base_env.envs[0].config['n_agents']):
+        #     episode.custom_metrics[f'{i}_actual_allocation'] = episode.last_info_for(i)['actual_allocation']
 
+
+        # log_dir = worker._original_kwargs.get('log_dir')
         pass
+        
 
 
 def generate_graph(
@@ -58,15 +62,47 @@ def generate_graph(
             rescue_amount=rescue_amount
         )
     elif config.get('scenario') == 'no point to bailout':
-                adjacency_matrix, position = generate_no_point_to_bailout(
+        adjacency_matrix, position = generate_no_point_to_bailout(
             config,
             rescue_amount=rescue_amount
         )
+    elif config.get('scenario') == 'coordination game':
+        adjacency_matrix, position = generate_coordination_game(
+            config,
+            rescue_amount = rescue_amount
+        )
+    elif config.get('scenario') == 'both are rich enough to bailout':
+        adjacency_matrix, position = generate_both_are_rich_enough_to_bailout(
+            config,
+            rescue_amount = rescue_amount
+        )
+
     else:
-        assert False, "Invalid scenario requested.  Select amongst 'volunteers dilemma', 'only one can bailout', ' no one can bailout', 'no point to bailout'"
+        assert False, "Invalid scenario requested.  Select amongst \
+            'volunteers dilemma', \
+            'only one can bailout', \
+            ' no one can bailout', \
+            'no point to bailout', \
+            'coordination game', \
+            'both are rich enough to bailout', \
+            "
 
 
     return adjacency_matrix, position
+
+
+def generate_both_are_rich_enough_to_bailout(
+    config,
+    rescue_amount
+    ):
+    pass
+
+
+def generate_coordination_game(
+    config,
+    rescue_amount
+    ):
+    pass
 
 
 def generate_random_adjacency_matrix(
@@ -437,7 +473,7 @@ def get_args():
     parser.add_argument("--debug",      action="store_true")
     parser.add_argument("--basic-model",   action="store_true")
     parser.add_argument("--run",        type=str, default="DQN")
-    parser.add_argument("--n-agents",   type=int, default=1)
+    parser.add_argument("--n-agents",   type=int, default=2)
     parser.add_argument("--n-workers",  type=int, default=1)
     parser.add_argument("--n-samples",  type=int, default=1)
     parser.add_argument("--n-gpus",     type=int, default=0)

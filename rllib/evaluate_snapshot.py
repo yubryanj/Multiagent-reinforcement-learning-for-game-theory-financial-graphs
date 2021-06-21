@@ -10,8 +10,6 @@ import seaborn as sn
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.collections import QuadMesh
-from matplotlib.text import Text
 
 import os
 
@@ -22,52 +20,35 @@ def plot(
     title="Single Agent allocation; 1e3 eval, 1e6 training episodes",
     maximum_allocation = 6,):
 
-    """ 
-        TODO: Update this so that the total column is another heatmap
-        https://stackoverflow.com/questions/33379261/how-can-i-have-a-bar-next-to-python-seaborn-heatmap-which-shows-the-summation-of
-    """
-
-    n_rows = maximum_allocation + 2
-    n_cols = maximum_allocation + 1 - 2 # Starts at 3
+    n_rows = maximum_allocation + 1
+    n_cols = 4 # Starts at 3...6
     n_cells = n_rows * n_cols
     confusion_matrix = np.zeros((n_rows, n_cols))
     for actual,optimal in zip(actual_allocations, optimal_allocations):
         if actual >=0 and actual <=7:
-            confusion_matrix[int(actual),int(optimal-1-2)] += 1
-
-    for i in range(confusion_matrix.shape[0]):
-        confusion_matrix[i,-1] = confusion_matrix[i,:-1].sum()
-    for j in range(confusion_matrix.shape[1]):
-        confusion_matrix[-1,j] = confusion_matrix[:-1,j].sum()
+            confusion_matrix[int(actual),int(optimal-3)] += 1
 
     print(confusion_matrix)
 
+    df_cm = pd.DataFrame(confusion_matrix, index = [i for i in range(n_rows)],
+                      columns = [i for i in range(3, 3 + n_cols)])
 
-    df_cm = pd.DataFrame(confusion_matrix, index = [i for i in range(n_rows-1)] + ['Total'],
-                      columns = [i for i in range(3, 2 + n_cols)] + ['Total'])
+    sn.set(font_scale=1.25)  # crazy big
 
-    plt.figure(figsize = (10,7))
+    fig = plt.figure(figsize = (20,15))
     plt.title(title)
-    plt.ylabel("Actual Allocation")
-    plt.xlabel("Rescue Amount")
-    ax = sn.heatmap(df_cm, annot=True, fmt='g', cmap="Blues", annot_kws={"fontsize":8}, cbar=False)
-    ax.set(xlabel='Rescue Amount', ylabel='Actual Allocation')
+    ax1 = plt.subplot2grid((20,20), (0,0), colspan=18, rowspan=18)
+    ax2 = plt.subplot2grid((20,20), (18,0), colspan=18, rowspan=2)
+    ax3 = plt.subplot2grid((20,20), (0,18), colspan=2, rowspan=18)
 
-    quadmesh = ax.findobj(QuadMesh)[0]
-    facecolors = quadmesh.get_facecolors()
+    sn.heatmap(df_cm, ax=ax1, annot=True, fmt='g', cmap="Blues", cbar=False)
+    
+    ax1.xaxis.tick_top()
+    ax1.set(xlabel='Rescue Amount', ylabel='Actual Allocation')
+    ax1.xaxis.set_label_position('top')
 
-    # make colors of the last column white
-    facecolors[np.arange(n_cols-1,n_cells,n_cols)] = np.array([1,1,1,1])
-    facecolors[np.arange(n_cells-n_cols,n_cells)] = np.array([1,1,1,1])
-
-    quadmesh.set_facecolors = facecolors
-
-    # set color of all text to black
-    for i in ax.findobj(Text):
-        i.set_color('black')
-
-    ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top') 
+    sn.heatmap((pd.DataFrame(df_cm.sum(axis=0))).transpose(), ax=ax2,  annot=True, cmap="Blues", cbar=False, xticklabels=False, yticklabels=False)
+    sn.heatmap(pd.DataFrame(df_cm.sum(axis=1)), ax=ax3,  annot=True, cmap="Blues", cbar=False, xticklabels=False, yticklabels=False)
 
     plt.savefig(f'{save_dir}/{title}.png')
     plt.clf()
@@ -123,9 +104,14 @@ if __name__ == "__main__":
     ray.init(local_mode = args.local_mode)
     config, env_config, stop = setup(args)
 
+    # Remove episode greedy; agent acts deterministically
     config['explore'] = False
 
-    checkpoints = [150,200]
+    # Remove the seed used in training
+    if 'seed' in config.keys():
+        config.pop('seed')
+
+    checkpoints = [200]
     n_rounds = 100
     
 
@@ -204,8 +190,6 @@ if __name__ == "__main__":
                     a1_actions = agent_1_actions[:,round]
                     plot(a1_actions, optimal_allocation, save_dir= save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
                     plot_hist(a1_actions,save_dir=save_dir, title=f"Checkpoint {checkpoint}, Agent 1, Round {round}")
-
-                    jointplot(a0_actions, a1_actions, save_dir=save_dir, title=f"Checkpoint {checkpoint} Round {round}")
 
             percentage_of_optimal_if_saved
             plot_table(

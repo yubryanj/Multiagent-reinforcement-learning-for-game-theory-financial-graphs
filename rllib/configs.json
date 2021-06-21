@@ -221,7 +221,7 @@
         "scenario":"no one can bailout"
     },
     "44":{
-        "note": "Discrete, multi agent, multi graph, no one can bailout",
+        "note": "Discrete, multi agent, multi graph, no point to bailout",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
