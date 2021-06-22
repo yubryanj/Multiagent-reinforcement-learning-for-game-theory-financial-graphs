@@ -16,17 +16,16 @@ class MyCallbacks(DefaultCallbacks):
                        policies: Dict[str, Policy], episode: MultiAgentEpisode,
                        env_index: int, **kwargs):
 
-        # if worker.env_context['discrete']:
-        #     episode.custom_metrics[f'current_epsilon'] = policies['policy_0'].exploration.get_info()['cur_epsilon']
+        if worker.env_context['discrete']:
+            episode.custom_metrics[f'current_epsilon'] = policies['policy_0'].exploration.get_info()['cur_epsilon']
         
-        
-        # episode.custom_metrics[f'starting_system_value'] = episode.last_info_for(0)['starting_system_value']
-        # episode.custom_metrics[f'ending_system_value'] = episode.last_info_for(0)['ending_system_value']
-        # episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
-        # episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
+        episode.custom_metrics[f'starting_system_value'] = episode.last_info_for(0)['starting_system_value']
+        episode.custom_metrics[f'ending_system_value'] = episode.last_info_for(0)['ending_system_value']
+        episode.custom_metrics[f'percentage_of_optimal_allocation'] = episode.last_info_for(0)['percentage_of_optimal_allocation']
+        episode.custom_metrics[f'optimal_allocation'] = episode.last_info_for(0)['optimal_allocation']
 
-        # for i in range(base_env.envs[0].config['n_agents']):
-        #     episode.custom_metrics[f'{i}_actual_allocation'] = episode.last_info_for(i)['actual_allocation']
+        for i in range(base_env.envs[0].config['n_agents']):
+            episode.custom_metrics[f'{i}_actual_allocation'] = episode.last_info_for(i)['actual_allocation']
 
 
         # log_dir = worker._original_kwargs.get('log_dir')

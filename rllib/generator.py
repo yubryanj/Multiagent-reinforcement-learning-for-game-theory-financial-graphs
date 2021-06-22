@@ -146,7 +146,7 @@ class Generator:
             # Check if both agents has an incentive to rescue
             # TODO: Check this verification
             # TODO: Include other checks
-            if self.verify_adjacency_matrix(config,adjacency_matrix):
+            if self.verify(config,adjacency_matrix):
                 generated = True
             
 
@@ -208,7 +208,7 @@ class Generator:
             # Check if both agents has an incentive to rescue
             # TODO: Check this verification
             # TODO: Include other checks
-            if self.verify_adjacency_matrix(config,adjacency_matrix):
+            if self.verify(config,adjacency_matrix):
                 generated = True
             
         return position, adjacency_matrix
@@ -279,7 +279,7 @@ class Generator:
             # Check if both agents has an incentive to rescue
             # TODO: Check this verification
             # TODO: Include other checks
-            if self.verify_adjacency_matrix(config,adjacency_matrix):
+            if self.verify(config,adjacency_matrix):
                 generated = True
             
         return position, adjacency_matrix
@@ -376,7 +376,7 @@ class Generator:
             # Check if both agents has an incentive to rescue
             # TODO: Check this verification
             # TODO: Include other checks
-            if self.verify_adjacency_matrix(config,adjacency_matrix):
+            if self.verify(config,adjacency_matrix):
                 generated = True
             
 
@@ -415,7 +415,7 @@ class Generator:
             position = np.zeros(n_entities)
             
             # Same a system amount
-            total_capital = np.random.randint(max_system_value)
+            total_capital = np.random.randint(3,max_system_value)
 
             # Allocate the sampled amount across the agents
             position[:n_agents] = np.random.multinomial(
@@ -442,42 +442,85 @@ class Generator:
             )[0]
 
             """ Graph Verification """
-            # Check if both agents has an incentive to rescue
-            # TODO: Check this verification
-            # TODO: Include other checks
-            if self.verify_adjacency_matrix(config,adjacency_matrix):
+            verifications = [
+                'all entries in adjacency matrix less than system max',
+                'check all positions greater than zero',
+                'both agents have positive incentives',
+            ]
+            if  self.verify(
+                config, 
+                position, 
+                adjacency_matrix, 
+                verifications
+                ):
                 generated = True
             
 
         return position, adjacency_matrix
 
 
-
-    def verify_adjacency_matrix(
+    def verify(
         self,
         config,
-        adjacency_matrix
+        positions,
+        adjacency_matrix,
+        tests = None
         ):
         """
-        Conducts general verifications of the generated adjacency matrix
-        :args   config              environment configuration
-        :args   adjacency_matrix    adjacency matrix to be verified 
+        Conducts verificiation of the position and adjacency matrices
         """
-        max_system_value    = config.get('max_system_value')
-        n_agents            = config.get('n_agents')
 
-        # Test 1: Assert that each entry is geq 0
-        assert (adjacency_matrix>=0).all(), 'There exists an entry in adjacency matrix that is < 0'
+        def check_all_positions_greater_than_zero():
+            return ( positions > 0 ).all()
 
-        # Test 2: Assert that each entry is less than max system value
-        assert (adjacency_matrix<max_system_value).all(), "There exists an entry in the adjacency matrix that is geq the maximum system value"
+        def none():
+            pass
 
-        # Test 3: Assert that the sum of debts is less than the maximum system value
-        # TODO: Is this a valid constraint?  There can be money multiplier effects
-        # assert (adjacency_matrix[:n_agents].sum() < max_system_value), "Total debts is greater than the maximum system value"
+        def all_entries_in_adjacency_matrix_greater_than_zero():
+            return ( adjacency_matrix > 0 ).all()
 
+        def all_entries_in_adjacency_matrix_less_than_system_max():
+            max_system_value = config.get('max_system_value')
+            return ( adjacency_matrix < max_system_value ).all()
+        
+        def both_agents_have_positive_incentives():
+            """Compute rewards if system is not saved"""
+            proportion_of_allocation = adjacency_matrix[2,:2]/ adjacency_matrix[2,:2].sum()
+            not_saved_rewards = positions[2] * config.get('haircut_multiplier') * proportion_of_allocation
 
-        return True
+            """Compute rewards if system is saved"""
+            # NOTE: Assumption
+            # Assumes the agent saves the distressed bank alone, they have to incur the full rescue amount alone
+            saved_rewards = adjacency_matrix[2,:2] - config.get('rescue_amount')
+
+            # Compute the incentives being the change in rewards
+            incentives = saved_rewards - not_saved_rewards
+
+            return ( incentives > 0 ).all()
+
+        lookup = {
+            None: none,
+            'check all positions greater than zero' : check_all_positions_greater_than_zero,
+            'all entries in adjacency matrix greater than zero' : all_entries_in_adjacency_matrix_greater_than_zero,
+            'all entries in adjacency matrix less than system max': all_entries_in_adjacency_matrix_less_than_system_max,
+            'both agents have positive incentives': both_agents_have_positive_incentives,
+        }
+
+        # Run the validation checks
+        for test in tests:
+
+            # Check that a valid test is requested
+            assert test in lookup.keys(), f'"{test}" is not a valid test'
+
+            # Return the output of the test
+            test_results = lookup.get(test)()
+
+            # Return false if any validation fails
+            if test_results == False:
+                return False
+            
+        return True    
+        
 
 
 if __name__ == "__main__":

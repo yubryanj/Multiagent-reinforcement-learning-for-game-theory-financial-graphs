@@ -233,6 +233,32 @@
         "n_samples": 1,
         "scenario":"no point to bailout",
         "haircut_multiplier":1.0
+    },
+    "45":{
+        "note": "Discrete, multi agent, multi graph, coordination game",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 0,
+        "debug": false,
+        "n_samples": 1,
+        "scenario":"coordination game"
+    },
+    "46":{
+        "note": "Discrete, multi agent, multi graph, coordination game",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 0,
+        "debug": false,
+        "n_samples": 1,
+        "scenario":"coordination game"
     }
 
 

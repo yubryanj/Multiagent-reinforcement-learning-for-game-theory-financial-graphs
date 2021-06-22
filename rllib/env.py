@@ -4,6 +4,7 @@ import numpy as np
 from copy import deepcopy
 from utils import generate_graph
 from gym.spaces import Discrete, Dict, Box
+from generator import Generator
 
 
 
@@ -16,11 +17,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.config = config
         self.distressed_node = 2
         self.iteration = 0
+        self.generator = Generator()
 
         # Placeholder to get observation size
-        self.adjacency_matrix, self.position = generate_graph(
-            config = self.config
-        )
+        self.config['rescue_amount'] = (self.iteration % 4) + 3
+        self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)
+
 
         if config['discrete']:
             self.action_space = Discrete(config['max_system_value'])
@@ -75,12 +77,9 @@ class Volunteers_Dilemma(MultiAgentEnv):
         # Reset the environment
         # TODO: Remove the rescue amounts -- they're being used for testing if the network can learn
         # Across different actions
-        rescue_amount = (self.iteration % 4) + 3
+        self.config['rescue_amount'] = (self.iteration % 4) + 3
 
-        self.adjacency_matrix, self.position = generate_graph(
-            config = self.config,
-            rescue_amount = rescue_amount    # TODO: remove this hard-coding
-            )
+        self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)
 
         # Retrieve the observations of the resetted environment        
         observations = {}
@@ -237,7 +236,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 observation_dict['final_round'] = np.zeros(1)
 
             # Mask all actions outside of current position
-            observation_dict.get('action_mask')[:int(self.position[agent_identifier])] = 1
+            observation_dict.get('action_mask')[:int(self.position[agent_identifier])+1] = 1
             
             return observation_dict
 
