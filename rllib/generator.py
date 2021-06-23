@@ -143,10 +143,19 @@ class Generator:
             )[0]
 
             """ Graph Verification """
-            # Check if both agents has an incentive to rescue
-            # TODO: Check this verification
-            # TODO: Include other checks
-            if self.verify(config,adjacency_matrix):
+            verifications = [
+                'all entries in adjacency matrix less than system max',
+                'check all positions greater than zero',
+                'not enough money together',
+                'both agents have positive incentives',
+
+            ]
+            if  self.verify(
+                config, 
+                position, 
+                adjacency_matrix, 
+                verifications
+                ):
                 generated = True
             
 
@@ -205,11 +214,19 @@ class Generator:
             )[0]
 
             """ Graph Verification """
-            # Check if both agents has an incentive to rescue
-            # TODO: Check this verification
-            # TODO: Include other checks
-            if self.verify(config,adjacency_matrix):
+            verifications = [
+                'all entries in adjacency matrix less than system max',
+                'check all positions greater than zero',
+                'no default occurred'
+            ]
+            if  self.verify(
+                config, 
+                position, 
+                adjacency_matrix, 
+                verifications
+                ):
                 generated = True
+
             
         return position, adjacency_matrix
 
@@ -276,10 +293,21 @@ class Generator:
 
 
             """ Graph Verification """
-            # Check if both agents has an incentive to rescue
-            # TODO: Check this verification
-            # TODO: Include other checks
-            if self.verify(config,adjacency_matrix):
+            # NOTE: Assumption
+            # Assumes that agent 1 also has an incentive to rescue
+            # but is unable to complete a rescue alone
+            verifications = [
+                'all entries in adjacency matrix less than system max',
+                'check all positions greater than zero',
+                'both agents have positive incentives',
+                'only agent 0 can rescue'
+            ]
+            if  self.verify(
+                config, 
+                position, 
+                adjacency_matrix, 
+                verifications
+                ):
                 generated = True
             
         return position, adjacency_matrix
@@ -307,7 +335,10 @@ class Generator:
         # Swap the positions of agent 0 and agent 1
         position[0], position[1] = position[1], position[0]
         adjacency_matrix[2,0], adjacency_matrix[2,1] = adjacency_matrix[2,1], adjacency_matrix[2,0]
-            
+
+        # NOTE: Verifications are conducted in self.only_agent_0_can_rescue.
+        # Successful validation there implies successful validation in this scenario due to symmetry
+
         return position, adjacency_matrix
 
 
@@ -352,7 +383,7 @@ class Generator:
                     total_capital,
                     np.ones(n_entities)/(n_entities),
                     size=1
-                    )[0]
+                    )[0].astype(float)
                 
                 if  position[0] >= rescue_amount and\
                     position[1] >= rescue_amount:
@@ -373,10 +404,18 @@ class Generator:
             )[0]
 
             """ Graph Verification """
-            # Check if both agents has an incentive to rescue
-            # TODO: Check this verification
-            # TODO: Include other checks
-            if self.verify(config,adjacency_matrix):
+            verifications = [
+                'all entries in adjacency matrix less than system max',
+                'check all positions greater than zero',
+                'both agents have positive incentives',
+                'both agents can rescue'
+            ]
+            if  self.verify(
+                config, 
+                position, 
+                adjacency_matrix, 
+                verifications
+                ):
                 generated = True
             
 
@@ -498,12 +537,34 @@ class Generator:
 
             return ( incentives > 0 ).all()
 
+        def both_agents_can_rescue():
+            return ( positions[:2] > config.get('rescue_amount') ).all()
+
+        def no_default_occurred():
+            return position[2] >= 0
+
+        def not_enough_money_together():
+            return position[:2].sum() < config.get('rescue_amount')
+
+        def only_agent_0_can_rescue():
+            return position[0] >= config.get('rescue_amount') and position[1] < config.get('rescue_amount')
+
+        def only_agent_1_can_rescue():
+            return position[1] >= config.get('rescue_amount') and position[0] < config.get('rescue_amount')
+
+
         lookup = {
             None: none,
             'check all positions greater than zero' : check_all_positions_greater_than_zero,
             'all entries in adjacency matrix greater than zero' : all_entries_in_adjacency_matrix_greater_than_zero,
             'all entries in adjacency matrix less than system max': all_entries_in_adjacency_matrix_less_than_system_max,
             'both agents have positive incentives': both_agents_have_positive_incentives,
+            'both agents can rescue': both_agents_can_rescue,
+            'no default occurred': no_default_occurred,
+            'not enough money together': not_enough_money_together,
+            'only agent 0 can rescue': only_agent_0_can_rescue,
+            'only agent 1 can rescue': only_agent_1_can_rescue,
+
         }
 
         # Run the validation checks

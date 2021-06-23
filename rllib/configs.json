@@ -248,7 +248,7 @@
         "scenario":"coordination game"
     },
     "46":{
-        "note": "Discrete, multi agent, multi graph, coordination game",
+        "note": "Discrete, multi agent, multi graph, both agents can rescue",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -258,8 +258,21 @@
         "beta": 0,
         "debug": false,
         "n_samples": 1,
+        "scenario":"both agents can rescue"
+    },
+    "47":{
+        "note": "Discrete, multi agent, multi graph, coordination game",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 1000,
+        "n_agents": 2,
+        "number_of_negotiation_rounds": 1,
+        "alpha": 1,
+        "beta": 0,
+        "debug": false,
+        "n_samples": 1,
         "scenario":"coordination game"
-    }
+    },
 
 
 

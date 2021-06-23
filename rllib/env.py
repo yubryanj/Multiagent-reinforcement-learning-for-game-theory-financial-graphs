@@ -11,7 +11,10 @@ from generator import Generator
 class Volunteers_Dilemma(MultiAgentEnv):
     """Env of N independent agents."""
 
-    def __init__(self, config):
+    def __init__(
+        self, 
+        config
+        ):
         # Generalize the graph for any bank being in distress
 
         self.config = config
@@ -71,14 +74,20 @@ class Volunteers_Dilemma(MultiAgentEnv):
             })
 
 
-    def reset(self):
+    def reset(
+        self
+        ):
+        """
+        Resets the environment
+        """
+        # Reset the timestep counter for multiple-round scenarios
         self.timestep =0 
 
-        # Reset the environment
-        # TODO: Remove the rescue amounts -- they're being used for testing if the network can learn
-        # Across different actions
+        # NOTE: Uniform rescue amounts are generated to improve interpretability
+        # as rescue amounts are not evenly distributed when randomly generated
         self.config['rescue_amount'] = (self.iteration % 4) + 3
 
+        # Generate the position and adjacency matrix
         self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)
 
         # Retrieve the observations of the resetted environment        
@@ -91,36 +100,59 @@ class Volunteers_Dilemma(MultiAgentEnv):
         return observations
 
 
-    def step(self, actions):
+    def step(
+        self, 
+        actions
+        ):
+        """
+        Takes one transition step in the environment
+        :args actions           dictionary containing the actions decided by each agent
+        :output observations    dictionary containing the next observations for each agent
+        :output rewards         dictionary containing the rewards for each agent
+        :output done            dictionary containing __all__ reflecting if the episode is finished
+        :output info            dictionary containing any additional episode information
+        """
+
         # Increment the timestep counter
         self.timestep += 1
 
-        # Compute the optimal action
-        optimal_allocation = np.sum(self.adjacency_matrix[-1]) - self.position[-1]
+        # Compute the value of the system before agents make a decision
         starting_system_value = self.clear().sum()
                         
         # Retrieve the observations of the resetted environment
         rewards, ending_system_value = self.compute_reward(actions, round = self.timestep)
         
+        # Allocate memory for the observation and info dictionaries
         observations    = {}
         info = {}
+
+        # iterate through each and generate their observations and info package
         for agent_identifier in range(self.config['n_agents']):
+
+            # Generate the observation for each agent
             observations[agent_identifier] = self.get_observation(agent_identifier, reset=False, actions=actions)
+
+            # Retrieve the information package for each agent
             info[agent_identifier] = {  
                 'starting_system_value': starting_system_value,
                 'ending_system_value': ending_system_value,
-                'optimal_allocation': optimal_allocation,
+                'optimal_allocation': self.config.get('rescue_amount'),
                 'actual_allocation': actions[agent_identifier],
-                'percentage_of_optimal_allocation': sum(list(actions.values()))/optimal_allocation,
+                'percentage_of_optimal_allocation': sum(list(actions.values()))/self.config.get('rescue_amount'),
                 'agent_0_position': self.position[0],
             }
 
+        # determine if the episode is completed
         done = {"__all__" : self.timestep == self.config['number_of_negotiation_rounds']}
 
         return observations, rewards, done, info
 
 
-    def compute_reward(self, actions, round):
+    def compute_reward(
+        self, 
+        actions, 
+        round
+        ):
         """
         Returns a reward signal at the end of negotiations
         For all other rounds, returns 0
@@ -173,7 +205,9 @@ class Volunteers_Dilemma(MultiAgentEnv):
         return rewards, system_value
 
 
-    def clear(self):
+    def clear(
+        self
+        ):
         """
         Clear the system to see where everything stabilizes
         """
@@ -203,7 +237,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
         return position
 
 
-    def get_observation(self, agent_identifier=None, reset=False, actions=None):
+    def get_observation(
+        self, 
+        agent_identifier=None, 
+        reset=False, 
+        actions=None
+        ):
         """
         Generates the observation matrix displayed to the agent
         """
@@ -255,7 +294,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
 
 
-    def get_observation_size(self):
+    def get_observation_size(
+        self
+        ):
+        """
+        Returns the size of the observation dictionary/vector
+        """
         obs = self.get_observation(agent_identifier=0, reset=True)
 
         if self.config.get('discrete'):
@@ -264,6 +308,12 @@ class Volunteers_Dilemma(MultiAgentEnv):
             return len(obs)
 
 
-    def get_net_position(self, agent):
+    def get_net_position(
+        self, 
+        agent
+        ):
+        """
+        Computes the net position of each agent
+        """
         net_position = self.position[agent] - np.sum(self.adjacency_matrix[agent,:]) + np.sum(self.adjacency_matrix[:,agent])
         return net_position
