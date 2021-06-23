@@ -180,7 +180,8 @@
         "alpha": 1,
         "beta": 1,
         "debug": false,
-        "n_samples": 5
+        "n_samples": 5,
+        "scenario":"volunteers dilemma"
     },
     "41":{
         "note": "Discrete, multi agent, multi graph",
@@ -192,7 +193,8 @@
         "alpha": 1,
         "beta": 0,
         "debug": false,
-        "n_samples": 5
+        "n_samples": 5,
+        "scenario":"volunteers dilemma"
     },
     "42":{
         "note": "Discrete, multi agent, multi graph, generate_only_one_can_bailout",
@@ -272,7 +274,7 @@
         "debug": false,
         "n_samples": 1,
         "scenario":"coordination game"
-    },
+    }
 
 
 

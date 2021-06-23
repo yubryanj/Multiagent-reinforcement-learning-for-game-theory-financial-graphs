@@ -47,7 +47,8 @@ class Generator:
         elif scenario == 'coordination game':
             return self.coordination_game(config)
         elif scenario == 'volunteers dilemma':
-            raise NotImplementedError('volunteers dilemma')
+            return self.both_agents_can_rescue(config)
+
         
 
     def debug(
