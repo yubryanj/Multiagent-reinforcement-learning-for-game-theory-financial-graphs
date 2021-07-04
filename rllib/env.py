@@ -3,7 +3,7 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv
 import numpy as np
 from copy import deepcopy
 from utils import generate_graph
-from gym.spaces import Discrete, Dict, Box
+from gym.spaces import Discrete, Box
 from generator import Generator
 
 
@@ -30,7 +30,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
         if config['discrete']:
             self.action_space = Discrete(config['max_system_value'])
 
-            self.observation_space = Dict({
+            features = {
                 "action_mask": Box(
                     0,
                     1, 
@@ -71,7 +71,22 @@ class Volunteers_Dilemma(MultiAgentEnv):
                     config['max_system_value'], 
                     shape=(1, )
                 ),
-            })
+            }
+
+            if self.config.get('full_information'):
+                features['other_agents_assets'] = Box(
+                    0, 
+                    config['max_system_value'], 
+                    shape=(1, )
+                )
+                features['other_agents_liabilities'] = Box(
+                    0, 
+                    config['max_system_value'], 
+                    shape=(1, )
+                )
+
+            self.observation_space = gym.spaces.Dict(features)
+
 
 
     def reset(
@@ -118,13 +133,28 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # Compute the value of the system before agents make a decision
         starting_system_value = self.clear().sum()
+
+        # If we decide to invert the actions, then the
+        # decision of the agent is how much to retain
+        if self.config.get('invert_actions'):
+
+            # Storage for the inverted actions
+            inverted_actions = {}
+
+            # Invert each agent's actions
+            for agent in actions.keys():
+                inverted_actions[agent] = self.position[agent] - actions[agent]
+
+            # Update the actions to the inverted actions
+            actions = inverted_actions
+
                         
         # Retrieve the observations of the resetted environment
         rewards, ending_system_value = self.compute_reward(actions, round = self.timestep)
         
         # Allocate memory for the observation and info dictionaries
         observations    = {}
-        info = {}
+        info            = {}
 
         # iterate through each and generate their observations and info package
         for agent_identifier in range(self.config['n_agents']):
@@ -276,6 +306,14 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
             # Mask all actions outside of current position
             observation_dict.get('action_mask')[:int(self.position[agent_identifier])+1] = 1
+
+
+            # If agents are given full information, reveal the other rescuing banks' assets and liabilities
+            if self.config.get('full_information'):
+                observation_dict['other_agents_assets']=\
+                    np.array([self.position[(agent_identifier + 1) % self.config.get('n_agents')]])
+                observation_dict['other_agents_liabilities']=\
+                    np.array([self.adjacency_matrix[2,(agent_identifier + 1) % self.config.get('n_agents')]])
             
             return observation_dict
 

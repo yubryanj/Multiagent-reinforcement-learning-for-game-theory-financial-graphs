@@ -3,12 +3,13 @@ from ray import tune
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.rllib.models import ModelCatalog
 
-from custom_model import Custom_discrete_model_with_masking, basic_model_with_masking
+from custom_model import Custom_discrete_model_with_masking, basic_model_with_masking, full_information_model_with_masking
 from env import Volunteers_Dilemma
 from utils import custom_eval_function, MyCallbacks, get_args
 
 
 def setup(args):
+
     env_config = {
             "n_agents":             args.n_agents,
             "n_entities":           args.n_agents + 1,
@@ -19,7 +20,9 @@ def setup(args):
             'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
             'alpha':                args.alpha,
             'beta':                 args.beta,
-            "scenario":             args.scenario
+            'scenario':             args.scenario,
+            'invert_actions':       args.invert_actions,
+            'full_information':     args.full_information
         }
 
     env = Volunteers_Dilemma(env_config)
@@ -27,6 +30,7 @@ def setup(args):
     action_space = env.action_space
     
     ModelCatalog.register_custom_model("custom_discrete_action_model_with_masking", Custom_discrete_model_with_masking)
+    ModelCatalog.register_custom_model("full_information_model_with_masking", full_information_model_with_masking)
     ModelCatalog.register_custom_model("basic_model", basic_model_with_masking)
 
     config = {
@@ -81,11 +85,17 @@ def setup(args):
                 "custom_model": "basic_model",
                 "custom_model_config": {
                 }
-
+            }
+        elif args.full_information:
+            config['model'] = {  
+                "custom_model": "full_information_model_with_masking",
+                "custom_model_config": {
+                    'embedding_size' : 32,
+                    'num_embeddings': args.max_system_value,
+                },
             }
         else:
             config['model'] = {  
-
                 "custom_model": "custom_discrete_action_model_with_masking",
                 "custom_model_config": {
                     'embedding_size' : 32,
@@ -122,7 +132,6 @@ if __name__ == "__main__":
                         local_dir=args.log_dir, 
                         checkpoint_freq = args.checkpoint_frequency,
                         num_samples = args.n_samples,
-                        # restore = args.restore,
                     )
 
     if args.as_test:

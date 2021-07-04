@@ -85,13 +85,10 @@ def jointplot(x, y, title, save_dir):
 
 def plot_table(
         title, 
-        percentage_saved, 
-        percentage_of_optimal_allocation_if_saved
+        data,
+        save_dir
     ):
-    fig, ax =plt.subplots(1,1)
-    data=[["Percentage Saved", f'{percentage_saved} %'],
-        ["Percentage of optimal allocation if saved", f'{percentage_of_optimal_allocation_if_saved} %']]
-    
+    fig, ax =plt.subplots(1,1)    
     ax.axis('tight')
     ax.axis('off')
     ax.table(cellText=data,loc="center")
@@ -139,11 +136,10 @@ def plot_equality_table(
     plt.savefig(f'{save_dir}/rescue_contributions.png')
     plt.clf()
 
+    return weighted_contribution_0, weighted_contribution_1
+
 
 if __name__ == "__main__":
-
-
-    # TODO: Need a way to log the scenarios
 
     # Retrieve the configurations used for the experiment
     args = get_args()
@@ -175,6 +171,8 @@ if __name__ == "__main__":
     if not os.path.exists(f'./data/checkpoints/{args.experiment_number}'):
         os.makedirs(f'./data/checkpoints/{args.experiment_number}')
 
+    average_agent_0_contributions = []
+    average_agent_1_contributions = []
 
     # Begin evaluations
     for i, run in enumerate(runs):
@@ -196,13 +194,21 @@ if __name__ == "__main__":
 
             # Create placeholders for agent's decisions
             # Used for generating statistics
-            agent_0_actions = []
-            agent_1_actions = []
-            optimal_allocation = []
-            scenarios = []
-            rescue_amounts = []
+            agent_0_actions             = []
+            agent_1_actions             = []
+            inverted_agent_0_actions    = []
+            inverted_agent_1_actions    = []
+            agent_0_assets              = []
+            agent_1_assets              = []
+            distressed_bank_assets      = []
+            debt_owed_agent_0           = []
+            debt_owed_agent_1           = []
+            optimal_allocation          = []
+            scenarios                   = []
+            rescue_amounts              = []
 
             # Create directory for storing results
+            root_dir = f'./data/checkpoints/{args.experiment_number}'
             save_dir = f'./data/checkpoints/{args.experiment_number}/{i}/{checkpoint}'
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
@@ -217,11 +223,23 @@ if __name__ == "__main__":
             """ Main Loop """
             for i in range(n_rounds):
                 # Placeholder for agents actions in this round
-                a_0 = []
-                a_1 = []
+                a_0     = []
+                a_1     = []
+                
+                # for inverted actions
+                if args.invert_actions:
+                    inverted_a_0 = []
+                    inverted_a_1 = []
 
                 # Reset the environment
                 obs = env.reset()
+
+                # Log the setting
+                agent_0_assets.append(env.position[0])
+                agent_1_assets.append(env.position[1])              
+                distressed_bank_assets.append(env.position[2])
+                debt_owed_agent_0.append(env.adjacency_matrix[2,0])
+                debt_owed_agent_1.append(env.adjacency_matrix[2,1])
 
                 # For each round in the episode
                 for round in range(env_config.get('number_of_negotiation_rounds')):
@@ -236,7 +254,6 @@ if __name__ == "__main__":
                         policy_id='policy_0'
                     )
                     actions[0] = action_0
-                    a_0.append(action_0)
                     
                     if env_config.get('n_agents') == 2:
 
@@ -246,15 +263,32 @@ if __name__ == "__main__":
                             policy_id='policy_1'
                         )
                         actions[1] = action_1
-                        a_1.append(action_1)
 
                     # Conduct a transition in the environment
                     obs, _, _, info = env.step(actions)
 
                     # Collect some statistics for logging
                     rescue_amount = env.config.get('rescue_amount')
-                    actual_allocation = sum(actions.values())
-                    if rescue_amount == actual_allocation:
+
+                    # If we are inverting the actions
+                    if args.invert_actions:
+                        inverted_actions = actions.copy()
+                        for i in range(args.n_agents):
+                            actions[i] = env.position[i] - actions[i]
+                        actual_allocation = sum(actions.values())
+                    else:
+                        actual_allocation = sum(actions.values())
+
+                    # Post inversion
+                    a_0.append(actions[0])
+                    a_1.append(actions[1]) if env_config.get('n_agents') == 2 else None
+
+                    if args.invert_actions:
+                        inverted_a_0.append(inverted_actions[0])
+                        inverted_a_1.append(inverted_actions[1]) if env_config.get('n_agents') == 2 else None
+
+                    # Log statistics
+                    if actual_allocation >= rescue_amount:
                         saved_rounds += 1
                         percentage_of_optimal_if_saved.append(actual_allocation/rescue_amount)
 
@@ -264,6 +298,9 @@ if __name__ == "__main__":
                 optimal_allocation.append(-obs[0]['real_obs'][2])
                 scenarios.append(env.config.get('scenario'))
                 rescue_amounts.append(rescue_amount)
+                if args.invert_actions:
+                    inverted_agent_0_actions.append(inverted_a_0)
+                    inverted_agent_1_actions.append(inverted_a_1)
             
 
             """ Generate plots and tables """
@@ -273,49 +310,83 @@ if __name__ == "__main__":
 
             for round in range(env_config.get('number_of_negotiation_rounds')):
                 a0_actions = agent_0_actions[:,round]
+
+                if args.invert_actions:
+
+                    inverted_a0_actions = np.array(inverted_agent_0_actions)[:,round]
+                    inverted_confusion_matrix_0 = plot(
+                        inverted_a0_actions, 
+                        optimal_allocation, 
+                        save_dir=save_dir, 
+                        title=f"Inverted actions - checkpoint {checkpoint}, Agent 0, Round {round}"
+                    )
                 confusion_matrix_0 = plot(
                     a0_actions, 
                     optimal_allocation, 
                     save_dir=save_dir, 
                     title=f"Checkpoint {checkpoint}, Agent 0, Round {round}"
                 )
-                plot_hist(
-                    a0_actions, 
-                    save_dir=save_dir, 
-                    title=f"Checkpoint {checkpoint}, Agent 0, Round {round}"
-                )
+                # plot_hist(
+                #     a0_actions, 
+                #     save_dir=save_dir, 
+                #     title=f"Checkpoint {checkpoint}, Agent 0, Round {round}"
+                # )
 
 
                 if env_config.get('n_agents') == 2 :
                     a1_actions = agent_1_actions[:,round]
+
+                    if args.invert_actions:
+                        inverted_a1_actions = np.array(inverted_agent_1_actions)[:,round]
+                        inverted_confusion_matrix_1 = plot(
+                            inverted_a1_actions, 
+                            optimal_allocation, 
+                            save_dir=save_dir, 
+                            title=f"Inverted actions - checkpoint {checkpoint}, Agent 1, Round {round}"
+                        )
+
                     confusion_matrix_1 = plot(
                         a1_actions, 
                         optimal_allocation, 
                         save_dir= save_dir, 
                         title=f"Checkpoint {checkpoint}, Agent 1, Round {round}"
                     )
-                    plot_hist(
-                        a1_actions,
-                        save_dir=save_dir, 
-                        title=f"Checkpoint {checkpoint}, Agent 1, Round {round}"    
-                    )
-                    plot_equality_table(
+                    # plot_hist(
+                    #     a1_actions,
+                    #     save_dir=save_dir, 
+                    #     title=f"Checkpoint {checkpoint}, Agent 1, Round {round}"    
+                    # )
+                    contribution_0, contribution_1 = plot_equality_table(
                         confusion_matrix_0,
                         confusion_matrix_1
                     )
+                    
+                    average_agent_0_contributions.append(contribution_0)
+                    average_agent_1_contributions.append(contribution_1)
 
+            
             plot_table(
                 title=f'Checkpoint {checkpoint} Statistics',
-                percentage_saved=saved_rounds/n_rounds * 100,
-                percentage_of_optimal_allocation_if_saved= np.mean(percentage_of_optimal_if_saved) * 100)
+                data=[["Percentage Saved", f'{saved_rounds/n_rounds * 100} %'],
+                ["Percentage of optimal allocation if saved", f'{np.mean(percentage_of_optimal_if_saved) * 100} %']],
+                save_dir = save_dir
+            )
 
+            
 
         """ Store experimental data """
         data = {
+            'experiment number': args.experiment_number,
+            'round number': np.arange(n_rounds),
             'scenario': scenarios,
             'rescue_amount': rescue_amounts,
             'agent 0 actions': list(agent_0_actions.flatten()),
             'agent 1 actions': list(agent_1_actions.flatten()),
+            'agent 0 assets': agent_0_assets,
+            'agent 1 assets': agent_1_assets,
+            'distressed bank assets': distressed_bank_assets,
+            'debt owed agent 0': debt_owed_agent_0,
+            'debt owed agent 1': debt_owed_agent_1,
             }        
         
         df = pd.DataFrame(data=data)
@@ -324,7 +395,25 @@ if __name__ == "__main__":
             index=False,
         )  
 
-        
+    # This table displays the allocation between dominant and non-dominant contributions across
+    # trained with varied seeds
+    dominant_contributions      = []
+    non_dominant_contributions  = []
+
+    for agent_0_contribution, agent_1_contribution in zip(average_agent_0_contributions, average_agent_1_contributions):
+        if agent_0_contribution >= agent_1_contribution:
+            dominant_contributions.append(agent_0_contribution)
+            non_dominant_contributions.append(agent_1_contribution)
+        else:
+            dominant_contributions.append(agent_1_contribution)
+            non_dominant_contributions.append(agent_0_contribution)
+    
+    plot_table(
+        title='Dominant vs Non Dominant Contributions',
+        data=[["average dominant contributions", f'{np.mean(dominant_contributions)} %'],
+            ["average non-dominant contributions", f'{np.mean(non_dominant_contributions)} %']],
+        save_dir = root_dir
+    )        
 
             
     ray.shutdown()

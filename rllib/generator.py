@@ -3,8 +3,10 @@ import numpy as np
 
 class Generator:
 
-    def __init__(self) -> None:
-        pass
+    def __init__(
+        self
+        ) -> None:
+        self.iterations = 0
 
     def generate_scenario(
         self,
@@ -26,7 +28,9 @@ class Generator:
             'only agent 1 can rescue',
             'both agents can rescue',
             'coordination game',
-            'volunteers dilemma'
+            'volunteers dilemma',
+            'debug fixed coordination game',
+            'merged only agent 0 can rescue and only agent 1 can rescue',
 
         ]
         if scenario not in valid_scenarios:
@@ -34,6 +38,8 @@ class Generator:
 
         if scenario == 'debug':
             return self.debug(config)
+        elif scenario == 'debug fixed coordination game':
+            return self.debug_fixed_coordination_game(config)
         elif scenario == 'not enough money together':
             return self.not_enough_money_together(config)
         elif scenario == 'not in default':
@@ -48,6 +54,8 @@ class Generator:
             return self.coordination_game(config)
         elif scenario == 'volunteers dilemma':
             return self.both_agents_can_rescue(config)
+        elif scenario == 'merged only agent 0 can rescue and only agent 1 can rescue':
+            return self.merged_only_agent_0_can_rescue_and_only_agent_1_can_rescue(config)
 
         
 
@@ -71,6 +79,32 @@ class Generator:
         ]
 
         position = [35.0, 35.0, 30.0]
+        adjacency_matrix = np.asarray(adjacency_matrix)
+        position = np.asarray(position)
+        return position, adjacency_matrix
+
+    
+    def debug_fixed_coordination_game(
+        self,
+        config
+        ):
+        """
+        Debugging graph for the fixed coordination case
+        In this case, the graphs contains the following situation
+            1.  a fixed coordination situation is presented each turn
+
+        :args   config              config containing common settings for the environment (i.e. haircut)
+        :output positions           capital allocation to each entity
+        :output adjacency_matrix    debt owed by each entity
+        """
+        adjacency_matrix = [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [3.0, 3.0, 0.0]
+        ]
+
+        position = [2.0, 2.0, 3.0]
+
         adjacency_matrix = np.asarray(adjacency_matrix)
         position = np.asarray(position)
         return position, adjacency_matrix
@@ -425,7 +459,7 @@ class Generator:
 
     def coordination_game(
         self,
-        config
+        config,
         ):
         """
         Generator for the case: 'coordination game'
@@ -433,6 +467,7 @@ class Generator:
             1.  both agent has nonzero capital
             2.  the sum of both agent's capitalization equals the rescue amount
             3.  the rescue amount must be geq 2
+            4.  every agent is able to contribute, but does not have to contribute all their capital
 
         :args   config              config containing common settings for the environment (i.e. haircut)
         :output positions           capital allocation to each entity
@@ -444,6 +479,8 @@ class Generator:
         n_agents            = config.get('n_agents')
         n_entities          = config.get('n_entities')
         max_system_value    = config.get('max_system_value')
+        commit_everything   = config.get('commit_everything')
+
 
         # The rescue amount must be geq to 2 such that each agent contributes at least 1
         assert rescue_amount >= 2
@@ -454,15 +491,22 @@ class Generator:
             """ Generate positions """
             position = np.zeros(n_entities)
             
-            # Same a system amount
-            total_capital = np.random.randint(3,max_system_value)
+            if commit_everything:
+                # Allocate the sampled amount across the agents
+                position[:n_agents] = np.random.multinomial(
+                    rescue_amount,
+                    np.ones(n_agents)/(n_agents),
+                    size=1
+                    )[0]
+            else:
+                position[0] = np.random.randint(rescue_amount)
+                position[1] = np.random.randint(rescue_amount)
 
-            # Allocate the sampled amount across the agents
-            position[:n_agents] = np.random.multinomial(
-                rescue_amount,
-                np.ones(n_agents)/(n_agents),
-                size=1
-                )[0]
+            # Set the system amount
+            total_capital = np.random.randint(
+                position[:2].sum(),
+                max_system_value
+            )
             
             # Allocate the remaining capitalization to the distressed bank
             position[2] = total_capital - position[:n_agents].sum()
@@ -472,7 +516,10 @@ class Generator:
             adjacency_matrix = np.zeros(shape=(n_entities, n_entities))
 
             # Compute the amount of debt owed
-            debt = position[2]  + rescue_amount
+            debt = position[2] + rescue_amount
+
+            if debt == 0 :
+                print("Debt == 0 !")
             
             # Allocate the debt across solvent banks
             adjacency_matrix[-1,:n_agents] = np.random.multinomial(
@@ -486,6 +533,8 @@ class Generator:
                 'all entries in adjacency matrix less than system max',
                 'check all positions greater than zero',
                 'both agents have positive incentives',
+                'the sum of both agents is geq than the rescue amount',
+                'both agents cannot rescue by themself'
             ]
             if  self.verify(
                 config, 
@@ -499,6 +548,34 @@ class Generator:
         return position, adjacency_matrix
 
 
+    def merged_only_agent_0_can_rescue_and_only_agent_1_can_rescue(
+        self,
+        config,
+        ):
+        """
+        Generator for the case: 'merged only agent 0 can rescue and only agent 1 can rescue'
+        In this case, the graphs must satify the following conditions:
+            1.  The generator switches between uniformly
+                A. only agent 0 can rescue
+                B. only agent 1 can rescue
+
+        :args   config              config containing common settings for the environment (i.e. haircut)
+        :output positions           capital allocation to each entity
+        :output adjacency_matrix    debt owed by each entity
+        """
+
+        # Increment the iterator
+        self.iterations += 1
+
+        # Return the appropriate scenario
+        if self.iterations % 2 == 0:
+            return self.only_agent_0_can_rescue(config)
+        else:
+            return self.only_agent_1_can_rescue(config)
+
+
+
+ 
     def verify(
         self,
         config,
@@ -542,17 +619,22 @@ class Generator:
             return ( positions[:2] > config.get('rescue_amount') ).all()
 
         def no_default_occurred():
-            return position[2] >= 0
+            return positions[2] >= 0
 
         def not_enough_money_together():
-            return position[:2].sum() < config.get('rescue_amount')
+            return positions[:2].sum() < config.get('rescue_amount')
 
         def only_agent_0_can_rescue():
-            return position[0] >= config.get('rescue_amount') and position[1] < config.get('rescue_amount')
+            return positions[0] >= config.get('rescue_amount') and positions[1] < config.get('rescue_amount')
 
         def only_agent_1_can_rescue():
-            return position[1] >= config.get('rescue_amount') and position[0] < config.get('rescue_amount')
+            return positions[1] >= config.get('rescue_amount') and positions[0] < config.get('rescue_amount')
 
+        def the_sum_of_both_agents_is_geq_than_the_rescue_amount():
+            return positions[:2].sum() >= config.get('rescue_amount')
+
+        def both_agents_cannot_rescue_by_themself():
+            return positions[0] < config.get('rescue_amount') and positions[1] < config.get('rescue_amount')
 
         lookup = {
             None: none,
@@ -565,6 +647,9 @@ class Generator:
             'not enough money together': not_enough_money_together,
             'only agent 0 can rescue': only_agent_0_can_rescue,
             'only agent 1 can rescue': only_agent_1_can_rescue,
+            'the sum of both agents is geq than the rescue amount':the_sum_of_both_agents_is_geq_than_the_rescue_amount,
+            'both agents cannot rescue by themself': both_agents_cannot_rescue_by_themself,
+
 
         }
 
@@ -602,7 +687,7 @@ if __name__ == "__main__":
             'beta':                 args.beta,
         }
 
-    case = 'not in default'
+    case = 'coordination game'
 
     if case =='debug':
         pass
@@ -623,7 +708,8 @@ if __name__ == "__main__":
         config['rescue_amount'] = 2
     elif case == 'coordination game':
         config['scenario'] = 'coordination game'
-        config['rescue_amount'] = 2
+        config['rescue_amount'] = 6
+        config['commit_everything'] = True
     elif case == 'volunteers dilemma':
         config['scenario'] = 'volunteers dilemma'
         config['rescue_amount'] = 2

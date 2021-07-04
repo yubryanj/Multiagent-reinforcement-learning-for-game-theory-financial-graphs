@@ -109,6 +109,81 @@ class Custom_discrete_model_with_masking(TorchModelV2, nn.Module):
         return torch.reshape(self.value(self._value_input), [-1])
 
 
+class full_information_model_with_masking(TorchModelV2, nn.Module):
+    """Torch version of FastModel (tf)."""
+
+    def __init__(self, obs_space, action_space, num_outputs, model_config,
+                 name, **kwargs):
+        TorchModelV2.__init__(self, obs_space, action_space, num_outputs,
+                              model_config, name)
+        nn.Module.__init__(self)
+
+        number_of_embeddings        = model_config.get('custom_model_config').get('num_embeddings')
+        embedding_size              = model_config.get('custom_model_config').get('embedding_size')
+
+        self.embed_assets           = embedding_network(number_of_embeddings, embedding_size)
+        self.embed_liabilities      = embedding_network(number_of_embeddings, embedding_size)
+        self.embed_net_position     = embedding_network(number_of_embeddings, embedding_size)
+        self.embed_last_offer       = embedding_network(number_of_embeddings, embedding_size)
+        self.embed_rescue_amount    = embedding_network(number_of_embeddings, embedding_size)
+        self.embed_final_round      = embedding_network(number_of_embeddings, embedding_size)
+        self.embed_other_agents_assets      = embedding_network(number_of_embeddings, embedding_size)
+        self.embed_other_agents_liabilities = embedding_network(number_of_embeddings, embedding_size)
+
+        self.combining_network      = nn.Linear(embedding_size * 8, embedding_size)
+        self.proposal_network       = offer_network(embedding_size, num_outputs)
+        self.value                  = torch.nn.Linear(embedding_size, 1)
+
+        self._value_input           = None
+
+    @override(ModelV2)
+    def forward(self, input_dict, state, seq_lens):
+
+        action_mask     = input_dict.get('obs').get('action_mask')
+
+        assets          = self.embed_assets(      input_dict.get('obs').get('assets'))
+        liabilities     = self.embed_liabilities( input_dict.get('obs').get('liabilities'))
+        net_position    = self.embed_net_position(input_dict.get('obs').get('net_position'))
+        rescue_amount   = self.embed_rescue_amount(input_dict.get('obs').get('rescue_amount'))
+        # Inflows
+        last_offer      = self.embed_last_offer(  input_dict.get('obs').get('last_offer'))
+        final_round     = self.embed_final_round( input_dict.get('obs').get('final_round'))
+        other_agents_assets         = self.embed_other_agents_assets( input_dict.get('obs').get('other_agents_assets'))
+        other_agents_liabilities    = self.embed_other_agents_assets( input_dict.get('obs').get('other_agents_liabilities'))
+
+        # Consider attention later
+        hidden_vector = torch.cat([
+            assets,
+            liabilities,
+            net_position,
+            rescue_amount,
+            last_offer,
+            final_round,
+            other_agents_assets,
+            other_agents_liabilities,
+        ],-1)
+
+        hidden_vector = self.combining_network(hidden_vector)
+        hidden_vector = nn.functional.relu(hidden_vector)
+
+        self._value_input = hidden_vector
+
+        logits = self.proposal_network(hidden_vector).squeeze()
+        inf_mask = torch.clamp(torch.log(action_mask),FLOAT_MIN, FLOAT_MAX)
+
+        # Apply the masks
+        logits = logits + inf_mask
+
+        return logits, []
+
+
+    @override(ModelV2)
+    def value_function(self):
+        assert self.hidden_vector is not None, "must call forward first!"
+        return torch.reshape(self.value(self._value_input), [-1])
+
+
+
 
 class basic_model_with_masking(TorchModelV2, nn.Module):
     """Torch version of FastModel (tf)."""
