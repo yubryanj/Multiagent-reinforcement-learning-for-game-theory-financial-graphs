@@ -26,7 +26,10 @@ if __name__ == "__main__":
     checkpoints = [200]
 
     # Conduct 100 episodes in the evaluation
-    n_rounds = 100
+    if env_config['scenario'] == 'uniformly mixed':
+        n_rounds = 600
+    else:
+        n_rounds = 100
 
     # Read the json file containing a dictionary
     # specifying where the trained agent is stored
@@ -61,11 +64,6 @@ if __name__ == "__main__":
     # Begin evaluations
     for i, run in enumerate(runs):
 
-        # If there are multiple runs in the experiments
-        # make a subdirectory for each experiment
-        if not os.path.exists(f'./data/checkpoints/{args.experiment_number}/{i}'):
-            os.makedirs(f'./data/checkpoints/{args.experiment_number}/{i}')
-
         # Specify path to the stored agent
         path = f"/itet-stor/bryayu/net_scratch/results/{run}"
 
@@ -74,13 +72,15 @@ if __name__ == "__main__":
 
             # Create directory for storing results
             root_dir = f'./data/checkpoints/{args.experiment_number}'
-            save_dir = f'./data/checkpoints/{args.experiment_number}/{i}/{checkpoint}'
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
 
             # Initialize and load the agent
             agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
-            agent.restore(f"{path}/checkpoint_000{checkpoint}/checkpoint-{checkpoint}")
+
+            # Naming convnetion changed in latest version of Ray
+            if os.path.exists(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}"):
+                agent.restore(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}")
+            else:
+                agent.restore(f"{path}/checkpoint_000{checkpoint}/checkpoint-{checkpoint}")
 
             # instantiate env class
             env = Volunteers_Dilemma(env_config)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
                 if env.config.get('scenario') == 'uniformly mixed':
                     sub_scenarios.append(env.generator.sub_scenario)
                 else:
-                    sub_scenarios.append("n/a")
+                    sub_scenarios.append("not applicable")
                 
 
         """ Store experimental data """

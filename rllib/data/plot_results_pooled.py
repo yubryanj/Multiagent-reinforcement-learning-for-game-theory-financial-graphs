@@ -1,13 +1,10 @@
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
 import os
-sns.set_theme()
 
 from plot_utils import plot_confusion_matrix, plot_table
-
+from itertools import combinations
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -15,36 +12,37 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    data = pd.read_csv(f'./data/checkpoints/{args.experiment_number}/experimental_data.csv')
+    master_dataset = pd.read_csv(f'./data/checkpoints/{args.experiment_number}/experimental_data.csv')
     root_dir = f'./data/checkpoints/{args.experiment_number}'
 
     # Allocate Storage
-    aggregated_statistics = []
+    aggregated_statistics   = []
+    policies                = pd.unique(master_dataset[['agent_0_policies','agent_1_policies']].values.ravel())
 
-    for sub_scenario in data['sub_scenarios'].unique():
+    for agent_0_policy, agent_1_policy in combinations(policies, 2):
+        
+        data = master_dataset[
+            (master_dataset['agent_0_policies'] == agent_0_policy) &\
+            (master_dataset['agent_1_policies'] == agent_1_policy) \
+        ]
 
         # Generate the directories for saving results
-        if sub_scenario != 'not applicable':
-            save_dir = f'{root_dir}/{sub_scenario}'
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-        else:
-            save_dir = root_dir
-
-        subscenario_dataset = data[data['sub_scenarios'] == sub_scenario]
+        save_dir = f'{root_dir}/{agent_0_policy}-{agent_1_policy}'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
 
         # Plot Agent 0's confusion matrix
         plot_confusion_matrix(
-            allocations     = subscenario_dataset['agent 0 actions'], 
-            rescue_amounts  = subscenario_dataset['rescue_amount'], 
+            allocations     = data['agent 0 actions'], 
+            rescue_amounts  = data['rescue_amount'], 
             save_dir        = save_dir,
             title           = 'Agent 0 Confusion Matrix',
         )
 
         # Plot Agent 1's confusion matrix
         plot_confusion_matrix(
-            allocations     = subscenario_dataset['agent 1 actions'],
-            rescue_amounts  = subscenario_dataset['rescue_amount'],
+            allocations     = data['agent 1 actions'],
+            rescue_amounts  = data['rescue_amount'],
             save_dir        = save_dir,
             title           = 'Agent 1 Confusion Matrix'
         )
@@ -54,12 +52,8 @@ if __name__ == "__main__":
         dominant_contributions                  = []
         non_dominant_contributions              = []
 
-        number_of_samples                       = len(data)
-        agent_0_contribution                    = subscenario_dataset['agent 0 actions']
-        agent_1_contribution                    = subscenario_dataset['agent 1 actions']
-        total_contribution                      = agent_0_contribution + agent_1_contribution
-        rescue_amount                           = subscenario_dataset['rescue_amount']
-        number_of_rescues = ( total_contribution >= rescue_amount ).sum()
+        number_of_samples = len(data)
+        number_of_rescues = ((data['agent 0 actions'] + data['agent 1 actions']) >= data['rescue_amount']).sum()
 
         # Iterate through every row and calculate statistics
         for index, row in data.iterrows():
@@ -98,23 +92,22 @@ if __name__ == "__main__":
 
         # Aggregate statistics
         for name, statistic in table_data:
-            aggregated_statistics.append([sub_scenario, name, statistic])
+            aggregated_statistics.append([f'{agent_0_policy}-{agent_1_policy}', name, statistic])
     
     # Plot aggregated statistics for uniformly mixed
-    if len(data['sub_scenarios'].unique()) > 1:
-        plot_table(
-            data        = aggregated_statistics,
-            save_dir    = root_dir,
-            title       = 'Aggregated Statistics'
-        )
+    plot_table(
+        data        = aggregated_statistics,
+        save_dir    = root_dir,
+        title       = 'Aggregated Statistics'
+    )
 
-        df = pd.DataFrame.from_records(aggregated_statistics)
-        df.columns = ["Sub Scenario", "Description", "Statistic"]
+    df = pd.DataFrame.from_records(aggregated_statistics)
+    df.columns = ["Agent 0 Policy - Agent 1 Policy", "Description", "Statistic"]
 
-        df.to_csv(
-            f'{root_dir}/aggregated_statistics.csv', 
-            index=False,
-        )  
+    df.to_csv(
+        f'{root_dir}/aggregated_statistics.csv', 
+        index=False,
+    )  
 
 
 

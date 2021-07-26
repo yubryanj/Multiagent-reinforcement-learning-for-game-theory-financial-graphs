@@ -6,9 +6,7 @@ from ray.rllib.agents.dqn import DQNTrainer
 from env import Volunteers_Dilemma
 from itertools import combinations
 
-import numpy as np
 import pandas as pd
-import numpy as np
 import os
 
 
@@ -51,11 +49,6 @@ if __name__ == "__main__":
     # Begin evaluations
     for i, run in enumerate(runs):
 
-        # If there are multiple runs in the experiments
-        # make a subdirectory for each experiment
-        if not os.path.exists(f'./data/checkpoints/{args.experiment_number}/{i}'):
-            os.makedirs(f'./data/checkpoints/{args.experiment_number}/{i}')
-
         # Specify path to the stored agent
         path = f"/itet-stor/bryayu/net_scratch/results/{run}"
 
@@ -76,9 +69,6 @@ if __name__ == "__main__":
 
         # Create directory for storing results
         root_dir = f'./data/checkpoints/{args.experiment_number}'
-        save_dir = f'./data/checkpoints/{args.experiment_number}/{i}/{checkpoint}'
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
 
         # Initialize and load the agent
         agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
@@ -140,7 +130,7 @@ if __name__ == "__main__":
                 if env.config.get('scenario') == 'uniformly mixed':
                     sub_scenarios.append(env.generator.sub_scenario)
                 else:
-                    sub_scenarios.append("n/a")
+                    sub_scenarios.append("not applicable")
 
 
         """ Store experimental data """
@@ -162,7 +152,7 @@ if __name__ == "__main__":
         
         df = pd.DataFrame(data=data)
         df.to_csv(
-            f'{save_dir}/experimental_data.csv', 
+            f'{root_dir}/experimental_data.csv', 
             index=False,
         )  
 
