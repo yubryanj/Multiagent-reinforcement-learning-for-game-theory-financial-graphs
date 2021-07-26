@@ -7,6 +7,11 @@ from custom_model import Custom_discrete_model_with_masking, basic_model_with_ma
 from env import Volunteers_Dilemma
 from utils import custom_eval_function, MyCallbacks, get_args
 
+import numpy as np
+
+
+def policy_mapping_fn(agent_id):
+    return np.random.choice(['policy_0','policy_1','policy_2','policy_3'])
 
 def setup(args):
 
@@ -39,18 +44,21 @@ def setup(args):
         "env_config": env_config,
         "multiagent": {
             "policies": {
-                "policy_0": (None, obs_space, action_space, {"framework": "torch"}),
-                "policy_1": (None, obs_space, action_space, {"framework": "torch"}),
+                "policy_0": (None, obs_space, action_space, {"framework": "torch", "beta":0.0}),
+                "policy_1": (None, obs_space, action_space, {"framework": "torch", "beta":0.2}),
+                "policy_2": (None, obs_space, action_space, {"framework": "torch", "beta":0.4}),
+                "policy_3": (None, obs_space, action_space, {"framework": "torch", "beta":0.6}),
+                "policy_4": (None, obs_space, action_space, {"framework": "torch", "beta":0.8}),
+                "policy_5": (None, obs_space, action_space, {"framework": "torch", "beta":1.0}),
             },
-            "policy_mapping_fn": (lambda agent_id: f"policy_{agent_id}"),
+            "policy_mapping_fn": policy_mapping_fn,
+            "policies_to_train":['policy_0','policy_1','policy_2','policy_3']
         },
         "num_workers": args.n_workers,  
         "framework": "torch",
         "num_gpus": args.n_gpus,
         "lr": 1e-3,
         "callbacks": MyCallbacks,  
-
-        #TODO: Update this if evaluation is desired
 
         # # Evaluation
         # "evaluation_num_workers": 1,

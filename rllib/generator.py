@@ -6,12 +6,13 @@ class Generator:
     def __init__(
         self
         ) -> None:
-        self.iterations = 0
+        pass
+
 
     def generate_scenario(
         self,
         config,
-    ):
+        ):
         """
         Generates an graph meeting the scenario requirements
         :arg    scenario        game theoretical setting desired
@@ -31,6 +32,7 @@ class Generator:
             'volunteers dilemma',
             'debug fixed coordination game',
             'merged only agent 0 can rescue and only agent 1 can rescue',
+            'uniformly mixed',
 
         ]
         if scenario not in valid_scenarios:
@@ -48,17 +50,17 @@ class Generator:
             return self.only_agent_0_can_rescue(config)
         elif scenario == 'only agent 1 can rescue':
             return self.only_agent_1_can_rescue(config)
-        elif scenario == 'both agents can rescue':
+        elif scenario == 'both agents can rescue' or\
+             scenario == 'volunteers dilemma':
             return self.both_agents_can_rescue(config)
         elif scenario == 'coordination game':
             return self.coordination_game(config)
-        elif scenario == 'volunteers dilemma':
-            return self.both_agents_can_rescue(config)
         elif scenario == 'merged only agent 0 can rescue and only agent 1 can rescue':
             return self.merged_only_agent_0_can_rescue_and_only_agent_1_can_rescue(config)
+        elif scenario == 'uniformly mixed':
+            return self.uniformly_mixed(config)
 
         
-
     def debug(
         self,
         config
@@ -180,7 +182,7 @@ class Generator:
             """ Graph Verification """
             verifications = [
                 'all entries in adjacency matrix less than system max',
-                'check all positions greater than zero',
+                'check all positions greater than or equal to zero',
                 'not enough money together',
                 'both agents have positive incentives',
 
@@ -232,7 +234,7 @@ class Generator:
                 max_system_value,
                 np.ones(n_entities)/(n_entities),
                 size=1
-                )[0]
+                )[0].astype(float)
 
             """ Generate adjacency matrix """
             # Allocate memory
@@ -246,7 +248,7 @@ class Generator:
                 debt,
                 np.ones(n_agents)/(n_agents),
                 size=1
-            )[0]
+            )[0].astype(float)
 
             """ Graph Verification """
             verifications = [
@@ -333,7 +335,7 @@ class Generator:
             # but is unable to complete a rescue alone
             verifications = [
                 'all entries in adjacency matrix less than system max',
-                'check all positions greater than zero',
+                'check all positions greater than or equal to zero',
                 'both agents have positive incentives',
                 'only agent 0 can rescue'
             ]
@@ -441,7 +443,7 @@ class Generator:
             """ Graph Verification """
             verifications = [
                 'all entries in adjacency matrix less than system max',
-                'check all positions greater than zero',
+                'check all positions greater than or equal to zero',
                 'both agents have positive incentives',
                 'both agents can rescue'
             ]
@@ -453,7 +455,6 @@ class Generator:
                 ):
                 generated = True
             
-
         return position, adjacency_matrix
 
 
@@ -531,7 +532,7 @@ class Generator:
             """ Graph Verification """
             verifications = [
                 'all entries in adjacency matrix less than system max',
-                'check all positions greater than zero',
+                'check all positions greater than or equal to zero',
                 'both agents have positive incentives',
                 'the sum of both agents is geq than the rescue amount',
                 'both agents cannot rescue by themself'
@@ -564,16 +565,69 @@ class Generator:
         :output adjacency_matrix    debt owed by each entity
         """
 
-        # Increment the iterator
-        self.iterations += 1
+        # Randomly select which agent
+        scenario = np.random.randint(0,2)
 
         # Return the appropriate scenario
-        if self.iterations % 2 == 0:
+        if scenario == 0:
             return self.only_agent_0_can_rescue(config)
         else:
             return self.only_agent_1_can_rescue(config)
 
 
+    def uniformly_mixed(
+        self,
+        config,
+        ):
+        """
+        Generator for the case: 'uniformly mixed'
+        In this case, the graphs must satify the following conditions:
+            1.  The generator switches uniformly between all the scenarios
+                a. 'not enough money together',
+                b. 'not in default',
+                c. 'only agent 0 can rescue',
+                d. 'only agent 1 can rescue',
+                e. 'both agents can rescue',
+                f. 'coordination game',
+                g. 'volunteers dilemma',
+        
+        If the rescue amount is 0, there is a 50% chance the agents will get 
+
+                
+
+        :args   config              config containing common settings for the environment (i.e. haircut)
+        :output positions           capital allocation to each entity
+        :output adjacency_matrix    debt owed by each entity
+        """
+
+        # Select uniformly at random a scenario
+        scenario = np.random.randint(0,6)
+
+        #TODO: Save the sub scenario into the system and retrieve it in the environment
+
+        # Select uniformly at random a rescue amount from 3-6
+        config['rescue_amount'] = np.random.randint(3,7)
+
+        # Return the appropriate scenario
+        if   scenario == 0:
+            self.sub_scenario = 'not enough money together'
+            return self.not_enough_money_together(config)
+        elif scenario == 1:
+            config['rescue_amount'] = 0
+            self.sub_scenario = 'not in default'
+            return self.not_in_default(config)
+        elif scenario == 2:
+            self.sub_scenario = 'only agent 0 can rescue'
+            return self.only_agent_0_can_rescue(config)
+        elif scenario == 3:
+            self.sub_scenario = 'only agent 1 can rescue'
+            return self.only_agent_1_can_rescue(config)
+        elif scenario == 4:
+            self.sub_scenario = 'both agents can rescue'
+            return self.both_agents_can_rescue(config)
+        elif scenario == 5:
+            self.sub_scenario = 'coordination game'
+            return self.coordination_game(config)
 
  
     def verify(
@@ -587,8 +641,12 @@ class Generator:
         Conducts verificiation of the position and adjacency matrices
         """
 
+
         def check_all_positions_greater_than_zero():
             return ( positions > 0 ).all()
+
+        def check_all_positions_greater_than_or_equal_to_zero():
+            return ( positions >= 0 ).all()
 
         def none():
             pass
@@ -639,6 +697,7 @@ class Generator:
         lookup = {
             None: none,
             'check all positions greater than zero' : check_all_positions_greater_than_zero,
+            'check all positions greater than or equal to zero': check_all_positions_greater_than_or_equal_to_zero,
             'all entries in adjacency matrix greater than zero' : all_entries_in_adjacency_matrix_greater_than_zero,
             'all entries in adjacency matrix less than system max': all_entries_in_adjacency_matrix_less_than_system_max,
             'both agents have positive incentives': both_agents_have_positive_incentives,

@@ -2,7 +2,6 @@ import gym
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 import numpy as np
 from copy import deepcopy
-from utils import generate_graph
 from gym.spaces import Discrete, Box
 from generator import Generator
 
@@ -25,6 +24,10 @@ class Volunteers_Dilemma(MultiAgentEnv):
         # Placeholder to get observation size
         self.config['rescue_amount'] = (self.iteration % 4) + 3
         self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)
+
+        # Placeholder for individualized betas which is set in the callback
+        self.config['agent_0_beta'] = 1.0
+        self.config['agent_1_beta'] = 1.0
 
 
         if config['discrete']:
@@ -168,7 +171,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 'ending_system_value': ending_system_value,
                 'optimal_allocation': self.config.get('rescue_amount'),
                 'actual_allocation': actions[agent_identifier],
-                'percentage_of_optimal_allocation': sum(list(actions.values()))/self.config.get('rescue_amount'),
+                # 'percentage_of_optimal_allocation': sum(list(actions.values()))/self.config.get('rescue_amount'),
                 'agent_0_position': self.position[0],
             }
 
@@ -224,9 +227,18 @@ class Volunteers_Dilemma(MultiAgentEnv):
             reward =  change_in_position.reshape(-1,1)[:self.config['n_agents']]
 
             rewards = {}
-            for i in range(self.config['n_agents']):
-                rewards[i] = self.config.get('alpha') * reward.flatten()[i] + \
-                             self.config.get('beta') * reward.flatten()[(i+1)%self.config['n_agents']]
+            if not self.config['pooled_training']:
+                for i in range(self.config['n_agents']):
+                    rewards[i] = self.config.get('alpha') * reward.flatten()[i] + \
+                                self.config.get('beta') * reward.flatten()[(i+1)%self.config['n_agents']]
+            else:
+                # print(self.config.get('agent_0_beta',), self.config.get('agent_1_beta'))
+                rewards[0] = self.config.get('alpha') * reward.flatten()[0] + \
+                                self.config.get('agent_0_beta') * reward.flatten()[1]
+                rewards[1] = self.config.get('alpha') * reward.flatten()[1] + \
+                                self.config.get('agent_1_beta') * reward.flatten()[0]
+
+
 
             system_value = new_bank_value.sum()
             
