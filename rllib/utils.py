@@ -172,27 +172,31 @@ def custom_eval_function(
     
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--as-test",    action="store_true")
-    parser.add_argument("--local-mode", action="store_true")
-    parser.add_argument("--discrete",   action="store_true")
-    parser.add_argument("--debug",      action="store_true")
-    parser.add_argument("--basic-model",   action="store_true")
-    parser.add_argument("--run",        type=str, default="DQN")
-    parser.add_argument("--n-agents",   type=int, default=2)
-    parser.add_argument("--n-workers",  type=int, default=1)
-    parser.add_argument("--n-samples",  type=int, default=1)
-    parser.add_argument("--n-gpus",     type=int, default=0)
-    parser.add_argument("--stop-iters", type=int, default=1)
+    parser.add_argument("--as-test",            action="store_true")
+    parser.add_argument("--local-mode",         action="store_true")
+    parser.add_argument("--discrete",           action="store_true")
+    parser.add_argument("--debug",              action="store_true")
+    parser.add_argument("--basic-model",        action="store_true")
+    parser.add_argument("--invert-actions",     action="store_true")
+    parser.add_argument("--restore",            type=str)
+    parser.add_argument("--run",                type=str,   default="DQN")
+    parser.add_argument("--n-agents",           type=int,   default=2)
+    parser.add_argument("--embedding-size",     type=int,   default=32)
+    parser.add_argument("--n-workers",          type=int,   default=1)
+    parser.add_argument("--n-samples",          type=int,   default=1)
+    parser.add_argument("--n-gpus",             type=int,   default=0)
+    parser.add_argument("--stop-iters",         type=int,   default=1)
     parser.add_argument("--checkpoint-frequency", type=int, default=50)
     parser.add_argument("--haircut-multiplier", type=float, default=0.50)
-    parser.add_argument("--max-system-value", type=int, default=100)
-    parser.add_argument("--restore",    type=str)
-    parser.add_argument("--seed",       type=int, default=123)
-    parser.add_argument("--experiment-number", type=int, default=000)
+    parser.add_argument("--initial-epsilon",    type=float, default=0.90)
+    parser.add_argument("--final-epsilon",      type=float, default=0.10)
+    parser.add_argument("--max-system-value",   type=int,   default=100)
+    parser.add_argument("--seed",               type=int,   default=123)
+    parser.add_argument("--experiment-number",  type=int,   default=000)
+    parser.add_argument("--alpha",              type=int,   default=1)
+    parser.add_argument("--beta",               type=int,   default=0)
+    parser.add_argument("--scenario",           type=str,   default="volunteers dilemma")
     parser.add_argument("--number-of-negotiation-rounds", type=int, default=1)
-    parser.add_argument("--alpha",      type=int, default=1)    # Prosocial parameter
-    parser.add_argument("--beta",       type=int, default=0)    # Prosocial parameter
-    parser.add_argument("--scenario",       type=str, default="volunteers dilemma")    # Prosocial parameter
     args = parser.parse_args()
     args.log_dir = f"/itet-stor/bryayu/net_scratch/results/{args.experiment_number}"
 
@@ -206,6 +210,8 @@ def get_args():
         for key in configs:
             setattr(args,key,configs.get(key))
 
+    if hasattr(args,'policies'):
+        setattr(args,'pool_size',len(args.policies))
 
     return args
 

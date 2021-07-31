@@ -3,15 +3,17 @@ from ray import tune
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.rllib.models import ModelCatalog
 
-from custom_model import Custom_discrete_model_with_masking, basic_model_with_masking, full_information_model_with_masking
+from custom_model import basic_model_with_masking, Generalized_model_with_masking
 from env import Volunteers_Dilemma
 from utils import custom_eval_function, MyCallbacks, get_args
 
 import numpy as np
 
+POLICIES = ['policy_0','policy_1','policy_2','policy_3','policy_4','policy_5']
+
 
 def policy_mapping_fn(agent_id):
-    return np.random.choice(['policy_0','policy_1','policy_2','policy_3'])
+    return np.random.choice(POLICIES)
 
 def setup(args):
 
@@ -29,65 +31,53 @@ def setup(args):
             'invert_actions':       args.invert_actions,
             'full_information':     args.full_information,
             'pooled_training':      args.pooled_training,
+            'pool_size':            args.pool_size,
+
         }
+
+    if hasattr(args, 'reveal_other_agents_identity'):
+        env_config['reveal_other_agents_identity'] = args.reveal_other_agents_identity
+
+    if hasattr(args, 'reveal_other_agents_beta'):
+        env_config['reveal_other_agents_beta'] = args.reveal_other_agents_beta
 
     env = Volunteers_Dilemma(env_config)
     obs_space = env.observation_space
     action_space = env.action_space
     
-    ModelCatalog.register_custom_model("custom_discrete_action_model_with_masking", Custom_discrete_model_with_masking)
-    ModelCatalog.register_custom_model("full_information_model_with_masking", full_information_model_with_masking)
     ModelCatalog.register_custom_model("basic_model", basic_model_with_masking)
+    ModelCatalog.register_custom_model("generalized_model_with_masking", Generalized_model_with_masking)
 
     config = {
         "env": Volunteers_Dilemma,  
         "env_config": env_config,
-        "multiagent": {
-            "policies": {
-                "policy_0": (None, obs_space, action_space, {"framework": "torch", "beta":0.0}),
-                "policy_1": (None, obs_space, action_space, {"framework": "torch", "beta":0.2}),
-                "policy_2": (None, obs_space, action_space, {"framework": "torch", "beta":0.4}),
-                "policy_3": (None, obs_space, action_space, {"framework": "torch", "beta":0.6}),
-                "policy_4": (None, obs_space, action_space, {"framework": "torch", "beta":0.8}),
-                "policy_5": (None, obs_space, action_space, {"framework": "torch", "beta":1.0}),
-            },
-            "policy_mapping_fn": policy_mapping_fn,
-            "policies_to_train":['policy_0','policy_1','policy_2','policy_3']
-        },
         "num_workers": args.n_workers,  
         "framework": "torch",
         "num_gpus": args.n_gpus,
         "lr": 1e-3,
         "callbacks": MyCallbacks,  
-
-        # # Evaluation
-        # "evaluation_num_workers": 1,
-
-        # # Optional custom eval function.
-        # "custom_eval_function": custom_eval_function,
-
-        # # Enable evaluation, once per training iteration.
-        # "evaluation_interval": 1,
-
-        # # Run 10 episodes each time evaluation runs.
-        # "evaluation_num_episodes": 100,
-
-        # # Override the env config for evaluation.
-        # "evaluation_config": {
-        #     "env_config": {            
-        #         "episode_length":   args.number_of_negotiation_rounds,
-        #         },
-        #     "explore": False
-        # },
     }
+
+    policies = {}
+    for policy in args.policies:
+        policies[policy] = (None, obs_space, action_space, {"framework":"torch", "beta":args.policies[policy]})
+
+    policies_to_train = [policy for policy in args.policies]
+    
+    config["multiagent"] =  {
+            "policies": policies,
+            "policy_mapping_fn": policy_mapping_fn,
+            "policies_to_train": policies_to_train
+    }
+
 
     # Discrete action space
     if args.discrete:
 
         config['exploration_config']= {
             "type": "EpsilonGreedy",
-            "initial_epsilon": 0.90, 
-            "final_epsilon": 0.10,
+            "initial_epsilon": args.initial_epsilon, 
+            "final_epsilon": args.final_epsilon,
             "epsilon_timesteps": args.stop_iters, 
         }
 
@@ -97,25 +87,26 @@ def setup(args):
                 "custom_model_config": {
                 }
             }
-        elif args.full_information:
-            config['model'] = {  
-                "custom_model": "full_information_model_with_masking",
-                "custom_model_config": {
-                    'embedding_size' : 32,
-                    'num_embeddings': args.max_system_value,
-                },
-            }
         else:
             config['model'] = {  
-                "custom_model": "custom_discrete_action_model_with_masking",
+                "custom_model": "generalized_model_with_masking",
                 "custom_model_config": {
-                    'embedding_size' : 32,
-                    'num_embeddings': args.max_system_value,
+                    'args':                     args,
+                    'num_embeddings':           args.max_system_value,
                 },
-                # "custom_action_dist": "custom_action_distribution",
-                # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
-
             }
+            if hasattr(args, 'reveal_other_agents_identity'):
+                config['model']['custom_model_config']['full_information'] = args.full_information
+
+            if hasattr(args, 'reveal_other_agents_identity'):
+                config['model']['custom_model_config']['reveal_other_agents_identity'] = args.reveal_other_agents_identity
+
+            if hasattr(args, 'reveal_other_agents_beta'):
+                config['model']['custom_model_config']['reveal_other_agents_beta'] = args.reveal_other_agents_beta
+
+
+
+
 
         if args.n_samples == 1:
             config['seed'] = args.seed

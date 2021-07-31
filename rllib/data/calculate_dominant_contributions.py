@@ -7,6 +7,7 @@ if __name__ == "__main__":
     # Define the games and their associated experiments
     dict = {
         'Volunteers Dilemma':{
+            # TODO: List is longer
             'experiment_numbers':[81,82,83,84,85]
         },
         'Coordination Game':{
@@ -68,13 +69,6 @@ if __name__ == "__main__":
                 'Percentage of Rescue Amount': percentage_of_rescue_amount,
                 'Successful Rescues': successful_rescues
                 }        
-            
-            # Convert and save as CSV
-            df = pd.DataFrame(data=data)
-            df.to_csv(
-                f'./data/contribution_dataset.csv', 
-                index=False,
-            )  
 
             # Prepare directory to save results
             root_dir = f'./data/dominant_contributions'
@@ -84,6 +78,13 @@ if __name__ == "__main__":
             
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
+          
+            # Convert and save as CSV
+            df = pd.DataFrame(data=data)
+            df.to_csv(
+                f'./data/dominant_contributions/contribution_dataset.csv', 
+                index=False,
+            )  
 
             # generate plots
             line_plot_with_variances(

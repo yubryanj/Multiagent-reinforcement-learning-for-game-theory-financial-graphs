@@ -28,6 +28,8 @@ class Volunteers_Dilemma(MultiAgentEnv):
         # Placeholder for individualized betas which is set in the callback
         self.config['agent_0_beta'] = 1.0
         self.config['agent_1_beta'] = 1.0
+        self.config['agent_0_policy'] = 'policy_0'
+        self.config['agent_1_policy'] = 'policy_0'
 
 
         if config['discrete']:
@@ -85,6 +87,21 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 features['other_agents_liabilities'] = Box(
                     0, 
                     config['max_system_value'], 
+                    shape=(1, )
+                )
+
+            if self.config.get('reveal_other_agents_identity'):
+                features['other_agents_identity'] = Box(
+                    0, 
+                    config['pool_size'], 
+                    shape=(1, )
+                )
+            
+            if self.config.get('reveal_other_agents_beta'):
+                # NOTE: Pro-social betas are discretized in steps of 0.01
+                features['other_agents_beta'] = Box(
+                    0, 
+                    100, 
                     shape=(1, )
                 )
 
@@ -309,8 +326,6 @@ class Volunteers_Dilemma(MultiAgentEnv):
             else:
                 observation_dict['last_offer']  = np.array([actions[(agent_identifier + 1) % 2]]) if actions is not None else np.zeros(1)
 
-
-
             if 'timestep' in self.__dict__.keys() and self.timestep == self.config['number_of_negotiation_rounds']:
                 observation_dict['final_round'] = np.ones(1)
             else:
@@ -319,14 +334,26 @@ class Volunteers_Dilemma(MultiAgentEnv):
             # Mask all actions outside of current position
             observation_dict.get('action_mask')[:int(self.position[agent_identifier])+1] = 1
 
-
             # If agents are given full information, reveal the other rescuing banks' assets and liabilities
             if self.config.get('full_information'):
                 observation_dict['other_agents_assets']=\
                     np.array([self.position[(agent_identifier + 1) % self.config.get('n_agents')]])
                 observation_dict['other_agents_liabilities']=\
                     np.array([self.adjacency_matrix[2,(agent_identifier + 1) % self.config.get('n_agents')]])
-            
+
+            # If agents are given the other_agents's identity, reveal this in the observation vector
+            if self.config.get('reveal_other_agents_identity'):
+                other_agents_identity = self.config.get(f'agent_{(agent_identifier + 1) % 2}_policy').strip('policy_')
+                observation_dict['other_agents_identity']=\
+                    np.array([float(other_agents_identity)])
+
+            # If agents are given the other_agents's beta, reveal this in the observation vector 
+            if self.config.get('reveal_other_agents_beta'):
+                other_agents_beta =  self.config.get(f'agent_{(agent_identifier + 1) % 2}_beta') * 100
+                observation_dict['other_agents_beta']=\
+                    np.array([float(other_agents_beta)])
+
+
             return observation_dict
 
         def get_obs_continuous(agent_identifier=None, reset=False, actions=None):

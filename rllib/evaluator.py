@@ -23,7 +23,7 @@ if __name__ == "__main__":
         config.pop('seed')
 
     # Only consider the latest checkpoint in the directory
-    checkpoints = [200]
+    checkpoint = stop.get('training_iteration')
 
     # Conduct 100 episodes in the evaluation
     if env_config['scenario'] == 'uniformly mixed':

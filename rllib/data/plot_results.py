@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # Allocate Storage
     aggregated_statistics = []
 
-    for sub_scenario in data['sub_scenarios'].unique():
+    for sub_scenario in sorted(data['sub_scenarios'].unique()):
 
         # Generate the directories for saving results
         if sub_scenario != 'not applicable':
@@ -54,20 +54,33 @@ if __name__ == "__main__":
         dominant_contributions                  = []
         non_dominant_contributions              = []
 
-        number_of_samples                       = len(data)
+        number_of_rescues                       = 0
+        number_of_samples                       = len(subscenario_dataset)
         agent_0_contribution                    = subscenario_dataset['agent 0 actions']
         agent_1_contribution                    = subscenario_dataset['agent 1 actions']
         total_contribution                      = agent_0_contribution + agent_1_contribution
         rescue_amount                           = subscenario_dataset['rescue_amount']
-        number_of_rescues = ( total_contribution >= rescue_amount ).sum()
+        # number_of_rescues                       = ( total_contribution >= rescue_amount ).sum()
 
         # Iterate through every row and calculate statistics
-        for index, row in data.iterrows():
+        for index, row in subscenario_dataset.iterrows():
             agent_0_contribution = row['agent 0 actions']
             agent_1_contribution = row['agent 1 actions']
             rescue_amount = row['rescue_amount']
             total_contribution = agent_0_contribution + agent_1_contribution
+    
+            # Total_contribution has to be greater than the rescue amount
+            if  sub_scenario != 'not in default':
+                if total_contribution >= rescue_amount:
+                    number_of_rescues += 1
+            else:
+                # In 'not in default' subscenario, the rescue amount is always 0
+                # thus, no rescue occurs unless the agents allocate larger than 0 assets
+                if total_contribution > rescue_amount:
+                    number_of_rescues += 1
 
+
+            # TODO: This number breaks in 'not in default" as the rescue amount is always 0
             if  total_contribution >= rescue_amount and rescue_amount != 0:
                 percentage_of_rescue_amount_if_saved.append( total_contribution / rescue_amount)
             

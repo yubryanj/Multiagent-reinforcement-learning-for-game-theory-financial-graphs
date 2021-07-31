@@ -25,12 +25,7 @@ if __name__ == "__main__":
         config.pop('seed')
 
     # Only consider the latest checkpoint in the directory
-    if args.experiment_number in [89,90,]:
-        checkpoint = 600
-    elif args.experiment_number in [93]:
-        checkpoint = 150
-    else:
-        checkpoint = 200
+    checkpoint = stop.get('training_iteration')
 
     # Conduct 100 episodes in the evaluation
     n_rounds = 100

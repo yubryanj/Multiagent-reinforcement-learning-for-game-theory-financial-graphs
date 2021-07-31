@@ -109,5 +109,17 @@ if __name__ == "__main__":
         index=False,
     )  
 
+    # Plot aggregated table
+    plot_confusion_matrix(
+        allocations     = master_dataset['agent 0 actions'], 
+        rescue_amounts  = master_dataset['rescue_amount'], 
+        save_dir        = root_dir,
+        title           = 'Aggregated Agent 0 Confusion Matrix',
+    )
 
-
+    plot_confusion_matrix(
+        allocations     = master_dataset['agent 1 actions'], 
+        rescue_amounts  = master_dataset['rescue_amount'], 
+        save_dir        = root_dir,
+        title           = 'Aggregated Agent 1 Confusion Matrix',
+    )

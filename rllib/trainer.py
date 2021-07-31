@@ -11,19 +11,18 @@ from utils import custom_eval_function, MyCallbacks, get_args
 def setup(args):
 
     env_config = {
+            'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
             "n_agents":             args.n_agents,
             "n_entities":           args.n_agents + 1,
             "haircut_multiplier":   args.haircut_multiplier,
             'discrete':             args.discrete,
             'max_system_value':     args.max_system_value, 
             'debug':                args.debug,
-            'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
             'alpha':                args.alpha,
             'beta':                 args.beta,
             'scenario':             args.scenario,
             'invert_actions':       args.invert_actions,
             'full_information':     args.full_information,
-            'pooled_training':      args.pooled_training,
         }
 
     env = Volunteers_Dilemma(env_config)
@@ -78,8 +77,8 @@ def setup(args):
 
         config['exploration_config']= {
             "type": "EpsilonGreedy",
-            "initial_epsilon": 0.90, 
-            "final_epsilon": 0.10,
+            "initial_epsilon": args.initial_epsilon, 
+            "final_epsilon": args.final_epsilon,
             "epsilon_timesteps": args.stop_iters, 
         }
 
@@ -93,7 +92,7 @@ def setup(args):
             config['model'] = {  
                 "custom_model": "full_information_model_with_masking",
                 "custom_model_config": {
-                    'embedding_size' : 32,
+                    'embedding_size' : args.embedding_size,
                     'num_embeddings': args.max_system_value,
                 },
             }
@@ -101,7 +100,7 @@ def setup(args):
             config['model'] = {  
                 "custom_model": "custom_discrete_action_model_with_masking",
                 "custom_model_config": {
-                    'embedding_size' : 32,
+                    'embedding_size' : args.embedding_size,
                     'num_embeddings': args.max_system_value,
                 },
                 # "custom_action_dist": "custom_action_distribution",
