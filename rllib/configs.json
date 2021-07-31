@@ -1324,7 +1324,7 @@
         "scenario":"coordination game"
     },
     "112":{
-        "note": "Pooled, with mixed betas",
+        "note": "Pooled, beta =0.3; experiments 112-118",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -1344,7 +1344,7 @@
         "scenario":"coordination game"
     },
     "113":{
-        "note": "Pooled, with mixed betas",
+        "note": "Pooled, beta =0.3; experiments 112-118",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -1366,7 +1366,7 @@
         "scenario":"coordination game"
     },
     "114":{
-        "note": "Pooled, with mixed betas",
+        "note": "Pooled, beta =0.3; experiments 112-118",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -1388,7 +1388,7 @@
         "scenario":"coordination game"
     },
     "115":{
-        "note": "Pooled, with mixed betas",
+        "note": "Pooled, beta =0.3; experiments 112-118",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -1410,7 +1410,7 @@
         "scenario":"coordination game"
     },
     "116":{
-        "note": "Pooled, with mixed betas",
+        "note": "Pooled, beta =0.3; experiments 112-118",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -1432,7 +1432,7 @@
         "scenario":"volunteers dilemma"
     },
     "117":{
-        "note": "Pooled, with mixed betas",
+        "note": "Pooled, beta =0.3; experiments 112-118",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -1454,7 +1454,7 @@
         "scenario":"volunteers dilemma"
     },
     "118":{
-        "note": "Pooled, with mixed betas",
+        "note": "Pooled, beta =0.3; experiments 112-118",
         "discrete": true,
         "run" : "DQN",
         "stop_iters": 200,
@@ -1470,6 +1470,403 @@
             "policy_3": 0.3,
             "policy_4": 0.3,
             "policy_5": 0.3
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": true,
+        "scenario":"volunteers dilemma"
+    },
+    "119":{
+        "note": "Pooled, beta =0,0; experiments 119-124",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.0,
+            "policy_2": 0.0,
+            "policy_3": 0.0,
+            "policy_4": 0.0,
+            "policy_5": 0.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": false,
+        "scenario":"coordination game"
+    },
+    "120":{
+        "note": "Pooled, beta =0,0; experiments 119-124",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.0,
+            "policy_2": 0.0,
+            "policy_3": 0.0,
+            "policy_4": 0.0,
+            "policy_5": 0.0
+        },
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": true,
+        "scenario":"coordination game"
+    },
+    "121":{
+        "note": "Pooled, beta =0,0; experiments 119-124",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.0,
+            "policy_2": 0.0,
+            "policy_3": 0.0,
+            "policy_4": 0.0,
+            "policy_5": 0.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": true,
+        "scenario":"coordination game"
+    },
+    "122":{
+        "note": "Pooled, beta =0,0; experiments 119-124",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.0,
+            "policy_2": 0.0,
+            "policy_3": 0.0,
+            "policy_4": 0.0,
+            "policy_5": 0.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": false,
+        "scenario":"volunteers dilemma"
+    },
+    "123":{
+        "note": "Pooled, beta =0,0; experiments 119-124",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.0,
+            "policy_2": 0.0,
+            "policy_3": 0.0,
+            "policy_4": 0.0,
+            "policy_5": 0.0
+        },
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": true,
+        "scenario":"volunteers dilemma"
+    },
+    "124":{
+        "note": "Pooled, beta =0,0; experiments 119-124",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.0,
+            "policy_2": 0.0,
+            "policy_3": 0.0,
+            "policy_4": 0.0,
+            "policy_5": 0.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": true,
+        "scenario":"volunteers dilemma"
+    },
+    "125":{
+        "note": "Pooled, beta =1; experiments 125-130",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 1.0,
+            "policy_1": 1.0,
+            "policy_2": 1.0,
+            "policy_3": 1.0,
+            "policy_4": 1.0,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": false,
+        "scenario":"coordination game"
+    },
+    "126":{
+        "note": "Pooled, beta =1; experiments 125-130",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 1.0,
+            "policy_1": 1.0,
+            "policy_2": 1.0,
+            "policy_3": 1.0,
+            "policy_4": 1.0,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": true,
+        "scenario":"coordination game"
+    },
+    "127":{
+        "note": "Pooled, beta =1; experiments 125-130",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 1.0,
+            "policy_1": 1.0,
+            "policy_2": 1.0,
+            "policy_3": 1.0,
+            "policy_4": 1.0,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": true,
+        "scenario":"coordination game"
+    },
+    "128":{
+        "note": "Pooled, beta =1; experiments 125-130",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 1.0,
+            "policy_1": 1.0,
+            "policy_2": 1.0,
+            "policy_3": 1.0,
+            "policy_4": 1.0,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": false,
+        "scenario":"volunteers dilemma"
+    },
+    "129":{
+        "note": "Pooled, beta =1; experiments 125-130",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 1.0,
+            "policy_1": 1.0,
+            "policy_2": 1.0,
+            "policy_3": 1.0,
+            "policy_4": 1.0,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": true,
+        "scenario":"volunteers dilemma"
+    },
+    "130":{
+        "note": "Pooled, beta =1; experiments 125-130",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 1.0,
+            "policy_1": 1.0,
+            "policy_2": 1.0,
+            "policy_3": 1.0,
+            "policy_4": 1.0,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": true,
+        "scenario":"volunteers dilemma"
+    },
+    "131":{
+        "note": "Pooled, with mixed betas",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.2,
+            "policy_2": 0.4,
+            "policy_3": 0.6,
+            "policy_4": 0.8,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": false,
+        "scenario":"coordination game"
+    },
+    "132":{
+        "note": "Pooled, with mixed betas",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.2,
+            "policy_2": 0.4,
+            "policy_3": 0.6,
+            "policy_4": 0.8,
+            "policy_5": 1.0
+
+        },
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": true,
+        "scenario":"coordination game"
+    },
+    "133":{
+        "note": "Pooled, with mixed betas",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.2,
+            "policy_2": 0.4,
+            "policy_3": 0.6,
+            "policy_4": 0.8,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": true,
+        "scenario":"coordination game"
+    },
+    "134":{
+        "note": "Pooled, with mixed betas",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.2,
+            "policy_2": 0.4,
+            "policy_3": 0.6,
+            "policy_4": 0.8,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": true,
+        "reveal_other_agents_beta": false,
+        "scenario":"volunteers dilemma"
+    },
+    "135":{
+        "note": "Pooled, with mixed betas",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.2,
+            "policy_2": 0.4,
+            "policy_3": 0.6,
+            "policy_4": 0.8,
+            "policy_5": 1.0
+        },
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": true,
+        "scenario":"volunteers dilemma"
+    },
+    "136":{
+        "note": "Pooled, with mixed betas",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": true,
+        "pooled_training": true,
+        "policies":{
+            "policy_0": 0.0,
+            "policy_1": 0.2,
+            "policy_2": 0.4,
+            "policy_3": 0.6,
+            "policy_4": 0.8,
+            "policy_5": 1.0
         },
         "reveal_other_agents_identity": true,
         "reveal_other_agents_beta": true,

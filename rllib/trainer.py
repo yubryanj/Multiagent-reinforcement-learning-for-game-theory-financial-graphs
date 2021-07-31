@@ -3,9 +3,9 @@ from ray import tune
 from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.rllib.models import ModelCatalog
 
-from custom_model import Custom_discrete_model_with_masking, basic_model_with_masking, full_information_model_with_masking
+from custom_model import basic_model_with_masking, Generalized_model_with_masking
 from env import Volunteers_Dilemma
-from utils import custom_eval_function, MyCallbacks, get_args
+from utils import MyCallbacks, get_args
 
 
 def setup(args):
@@ -23,15 +23,16 @@ def setup(args):
             'scenario':             args.scenario,
             'invert_actions':       args.invert_actions,
             'full_information':     args.full_information,
+            'pooled_training':      args.pooled_training,
         }
 
     env = Volunteers_Dilemma(env_config)
     obs_space = env.observation_space
     action_space = env.action_space
     
-    ModelCatalog.register_custom_model("custom_discrete_action_model_with_masking", Custom_discrete_model_with_masking)
-    ModelCatalog.register_custom_model("full_information_model_with_masking", full_information_model_with_masking)
     ModelCatalog.register_custom_model("basic_model", basic_model_with_masking)
+    ModelCatalog.register_custom_model("generalized_model_with_masking", Generalized_model_with_masking)
+
 
     config = {
         "env": Volunteers_Dilemma,  
@@ -48,28 +49,6 @@ def setup(args):
         "num_gpus": args.n_gpus,
         "lr": 1e-3,
         "callbacks": MyCallbacks,  
-
-        #TODO: Update this if evaluation is desired
-
-        # # Evaluation
-        # "evaluation_num_workers": 1,
-
-        # # Optional custom eval function.
-        # "custom_eval_function": custom_eval_function,
-
-        # # Enable evaluation, once per training iteration.
-        # "evaluation_interval": 1,
-
-        # # Run 10 episodes each time evaluation runs.
-        # "evaluation_num_episodes": 100,
-
-        # # Override the env config for evaluation.
-        # "evaluation_config": {
-        #     "env_config": {            
-        #         "episode_length":   args.number_of_negotiation_rounds,
-        #         },
-        #     "explore": False
-        # },
     }
 
     # Discrete action space
@@ -88,24 +67,13 @@ def setup(args):
                 "custom_model_config": {
                 }
             }
-        elif args.full_information:
-            config['model'] = {  
-                "custom_model": "full_information_model_with_masking",
-                "custom_model_config": {
-                    'embedding_size' : args.embedding_size,
-                    'num_embeddings': args.max_system_value,
-                },
-            }
         else:
             config['model'] = {  
-                "custom_model": "custom_discrete_action_model_with_masking",
+                "custom_model": "generalized_model_with_masking",
                 "custom_model_config": {
-                    'embedding_size' : args.embedding_size,
-                    'num_embeddings': args.max_system_value,
+                    'args':                     args,
+                    'num_embeddings':           args.max_system_value,
                 },
-                # "custom_action_dist": "custom_action_distribution",
-                # "custom_action_dist": "torch_categorical",    # DQN defaults to categorical
-
             }
 
         if args.n_samples == 1:

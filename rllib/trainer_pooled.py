@@ -17,6 +17,7 @@ def policy_mapping_fn(agent_id):
 
 def setup(args):
 
+    # TODO: Update ENV so that it reads from args, and does not require an env_config
     env_config = {
             "n_agents":             args.n_agents,
             "n_entities":           args.n_agents + 1,
