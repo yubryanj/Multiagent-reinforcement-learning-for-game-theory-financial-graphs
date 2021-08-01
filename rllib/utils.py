@@ -210,6 +210,8 @@ def get_args():
         for key in configs:
             setattr(args,key,configs.get(key))
 
+    setattr(args,'n_entities',args.n_agents + 1)
+
     if hasattr(args,'policies'):
         setattr(args,'pool_size',len(args.policies))
 

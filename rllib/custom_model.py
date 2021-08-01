@@ -191,8 +191,6 @@ class Generalized_model_with_masking(TorchModelV2, nn.Module):
         return torch.reshape(self.value(self._value_input), [-1])
 
 
-
-
 class basic_model_with_masking(TorchModelV2, nn.Module):
     """Torch version of FastModel (tf)."""
 

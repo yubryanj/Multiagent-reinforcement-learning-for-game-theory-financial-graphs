@@ -26,6 +26,9 @@ if __name__ == "__main__":
             (master_dataset['agent_1_policies'] == agent_1_policy) \
         ]
 
+        agent_0_beta = data['agent 0 betas'].unique()[0]
+        agent_1_beta = data['agent 1 betas'].unique()[0]
+
         # Generate the directories for saving results
         save_dir = f'{root_dir}/{agent_0_policy}-{agent_1_policy}'
         if not os.path.exists(save_dir):
@@ -36,7 +39,7 @@ if __name__ == "__main__":
             allocations     = data['agent 0 actions'], 
             rescue_amounts  = data['rescue_amount'], 
             save_dir        = save_dir,
-            title           = 'Agent 0 Confusion Matrix',
+            title           = f'Agent 0 Confusion Matrix - beta={agent_0_beta}',
         )
 
         # Plot Agent 1's confusion matrix
@@ -44,7 +47,7 @@ if __name__ == "__main__":
             allocations     = data['agent 1 actions'],
             rescue_amounts  = data['rescue_amount'],
             save_dir        = save_dir,
-            title           = 'Agent 1 Confusion Matrix'
+            title           = f'Agent 1 Confusion Matrix - beta={agent_1_beta}'
         )
 
         # Prepare the data for the table plotting
@@ -81,7 +84,9 @@ if __name__ == "__main__":
             ["Percentage Saved", f'{number_of_rescues/ number_of_samples}'],
             ["Average percentage of rescue amount if rescued", f'{np.mean(percentage_of_rescue_amount_if_saved)}'],
             ['Average Dominant Contribution', f'{np.mean(dominant_contributions)}'],
-            ['Average Non-Dominant Contribution', f'{np.mean(non_dominant_contributions)}']
+            ['Average Non-Dominant Contribution', f'{np.mean(non_dominant_contributions)}'],
+            ['Agent 0 Beta', agent_0_beta],
+            ['Agent 1 Beta', agent_1_beta],
         ]
 
         plot_table(
@@ -92,7 +97,11 @@ if __name__ == "__main__":
 
         # Aggregate statistics
         for name, statistic in table_data:
-            aggregated_statistics.append([f'{agent_0_policy}-{agent_1_policy}', name, statistic])
+            aggregated_statistics.append([
+                f'{agent_0_policy} beta={agent_0_beta}-{agent_1_policy} beta={agent_1_beta}', 
+                name, 
+                statistic
+            ])
     
     # Plot aggregated statistics for uniformly mixed
     plot_table(

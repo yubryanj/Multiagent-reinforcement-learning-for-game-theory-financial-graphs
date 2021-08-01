@@ -15,7 +15,7 @@ if __name__ == "__main__":
     # Retrieve the configurations used for the experiment
     args = get_args()
     ray.init(local_mode = args.local_mode)
-    config, env_config, stop = setup(args)
+    config, stop = setup(args)
 
     # Remove episode greedy so that the agent acts deterministically
     config['explore'] = False
@@ -51,6 +51,8 @@ if __name__ == "__main__":
         # Used for generating statistics
         agent_0_policies            = []
         agent_1_policies            = []
+        agent_0_betas               = []
+        agent_1_betas               = []
         agent_0_actions             = []
         agent_1_actions             = []
         agent_0_assets              = []
@@ -70,12 +72,24 @@ if __name__ == "__main__":
         agent.restore(f"{path}/checkpoint_000{checkpoint}/checkpoint-{checkpoint}")
 
         # instantiate env class
-        env = Volunteers_Dilemma(env_config)
+        env = Volunteers_Dilemma(vars(args))
 
         policies = config.get('multiagent').get('policies').keys()
 
         # Iterate through the combination of policies
         for agent_0_policy, agent_1_policy in combinations(policies, 2):
+
+            agent_0_beta = config\
+                .get('multiagent')\
+                .get('policies')\
+                .get(agent_0_policy)[3]\
+                .get('beta')
+
+            agent_1_beta = config\
+                .get('multiagent')\
+                .get('policies')\
+                .get(agent_1_policy)[3]\
+                .get('beta')
 
             """ Main Loop """
             for i in range(n_rounds):
@@ -111,6 +125,8 @@ if __name__ == "__main__":
                 # Logging
                 agent_0_policies.append(agent_0_policy)
                 agent_1_policies.append(agent_1_policy)
+                agent_0_betas.append(agent_0_beta)
+                agent_1_betas.append(agent_1_beta)
                 agent_0_assets.append(env.position[0])
                 agent_1_assets.append(env.position[1])              
                 agent_0_actions.append(actions[0])
@@ -138,6 +154,8 @@ if __name__ == "__main__":
             'agent 1 actions': agent_1_actions,
             'agent_0_policies': agent_0_policies,
             'agent_1_policies': agent_1_policies,
+            'agent 0 betas': agent_0_betas,
+            'agent 1 betas': agent_1_betas,
             'agent 0 assets': agent_0_assets,
             'agent 1 assets': agent_1_assets,
             'distressed bank assets': distressed_bank_assets,

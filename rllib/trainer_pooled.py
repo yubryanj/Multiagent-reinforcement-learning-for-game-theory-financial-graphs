@@ -17,32 +17,7 @@ def policy_mapping_fn(agent_id):
 
 def setup(args):
 
-    # TODO: Update ENV so that it reads from args, and does not require an env_config
-    env_config = {
-            "n_agents":             args.n_agents,
-            "n_entities":           args.n_agents + 1,
-            "haircut_multiplier":   args.haircut_multiplier,
-            'discrete':             args.discrete,
-            'max_system_value':     args.max_system_value, 
-            'debug':                args.debug,
-            'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
-            'alpha':                args.alpha,
-            'beta':                 args.beta,
-            'scenario':             args.scenario,
-            'invert_actions':       args.invert_actions,
-            'full_information':     args.full_information,
-            'pooled_training':      args.pooled_training,
-            'pool_size':            args.pool_size,
-
-        }
-
-    if hasattr(args, 'reveal_other_agents_identity'):
-        env_config['reveal_other_agents_identity'] = args.reveal_other_agents_identity
-
-    if hasattr(args, 'reveal_other_agents_beta'):
-        env_config['reveal_other_agents_beta'] = args.reveal_other_agents_beta
-
-    env = Volunteers_Dilemma(env_config)
+    env = Volunteers_Dilemma(vars(args))
     obs_space = env.observation_space
     action_space = env.action_space
     
@@ -51,7 +26,7 @@ def setup(args):
 
     config = {
         "env": Volunteers_Dilemma,  
-        "env_config": env_config,
+        "env_config": vars(args),
         "num_workers": args.n_workers,  
         "framework": "torch",
         "num_gpus": args.n_gpus,
@@ -105,10 +80,6 @@ def setup(args):
             if hasattr(args, 'reveal_other_agents_beta'):
                 config['model']['custom_model_config']['reveal_other_agents_beta'] = args.reveal_other_agents_beta
 
-
-
-
-
         if args.n_samples == 1:
             config['seed'] = args.seed
 
@@ -120,14 +91,14 @@ def setup(args):
         config['hiddens'] = []
         config['dueling'] = False
 
-    return config, env_config, stop
+    return config, stop
 
 if __name__ == "__main__":
     args=get_args()
     
     ray.init(local_mode = args.local_mode)
 
-    config, env_config, stop = setup(args)
+    config, stop = setup(args)
 
     results = tune.run( args.run, 
                         config=config, 

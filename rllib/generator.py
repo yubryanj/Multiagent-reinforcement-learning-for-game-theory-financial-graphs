@@ -732,56 +732,17 @@ class Generator:
 if __name__ == "__main__":
     from utils import get_args
 
-
     args = get_args()
-    config = {
-            "n_agents":             2,
-            "n_entities":           args.n_agents + 1,
-            "haircut_multiplier":   args.haircut_multiplier,
-            'discrete':             args.discrete,
-            'max_system_value':     args.max_system_value, 
-            'debug':                args.debug,
-            'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
-            'alpha':                args.alpha,
-            'beta':                 args.beta,
-        }
-
-    case = 'coordination game'
-
-    if case =='debug':
-        pass
-    elif case == 'not enough money together':
-        config['scenario'] = 'not enough money together'
-        config['rescue_amount'] = 3
-    elif case == 'not in default':
-        config['scenario'] = 'not in default'
-        config['rescue_amount'] = 0
-    elif case == 'only agent 0 can rescue':
-        config['scenario'] = 'only agent 0 can rescue'
-        config['rescue_amount'] = 2
-    elif case == 'only agent 1 can rescue':
-        config['scenario'] = 'only agent 1 can rescue'
-        config['rescue_amount'] = 2
-    elif case == 'both agents can rescue':
-        config['scenario'] = 'both agents can rescue'
-        config['rescue_amount'] = 2
-    elif case == 'coordination game':
-        config['scenario'] = 'coordination game'
-        config['rescue_amount'] = 6
-        config['commit_everything'] = True
-    elif case == 'volunteers dilemma':
-        config['scenario'] = 'volunteers dilemma'
-        config['rescue_amount'] = 2
-    else:
-        assert False
-    
-
+    config = vars(args)
 
     g = Generator()
-    adjacency_matrix, position = g.generate_scenario(
-        config,
-    )
 
-    print(adjacency_matrix)
+    for i in range(config['minimum_rescue_amount'], config['maximum_rescue_amount']):
+        config['rescue_amount'] = i
+        adjacency_matrix, position = g.generate_scenario(
+            config,
+        )
 
-    print(position)
+        print(f'rescue amount: {i}')
+        print(adjacency_matrix)
+        print(position)

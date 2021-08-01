@@ -14,15 +14,16 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self, 
         config
         ):
-        # Generalize the graph for any bank being in distress
 
+        # Generalize the graph for any bank being in distress
         self.config = config
         self.distressed_node = 2
         self.iteration = 0
         self.generator = Generator()
 
         # Placeholder to get observation size
-        self.config['rescue_amount'] = (self.iteration % 4) + 3
+        self.rescue_range = self.config['maximum_rescue_amount'] - self.config['minimum_rescue_amount']
+        self.config['rescue_amount'] = (self.iteration % self.rescue_range) + self.config['minimum_rescue_amount']
         self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)
 
         # Placeholder for individualized betas which is set in the callback
@@ -32,8 +33,8 @@ class Volunteers_Dilemma(MultiAgentEnv):
         self.config['agent_1_policy'] = 'policy_0'
 
 
-        if config['discrete']:
-            self.action_space = Discrete(config['max_system_value'])
+        if self.config['discrete']:
+            self.action_space = Discrete(self.config['max_system_value'])
 
             features = {
                 "action_mask": Box(
@@ -42,13 +43,13 @@ class Volunteers_Dilemma(MultiAgentEnv):
                     shape=(self.action_space.n, )
                 ),
                 "real_obs": Box(
-                    -config['max_system_value'],
-                    config['max_system_value'],
+                    -self.config['max_system_value'],
+                    self.config['max_system_value'],
                     shape=(self.get_observation_size(),)
                 ),
                 "last_offer": Box(
                     0,
-                    config['max_system_value'],
+                    self.config['max_system_value'],
                     shape=(1,)
                 ),
                 "final_round": Box(
@@ -58,22 +59,22 @@ class Volunteers_Dilemma(MultiAgentEnv):
                 ),
                 "net_position": Box(
                     0, 
-                    config['max_system_value'], 
+                    self.config['max_system_value'], 
                     shape=(1, )
                 ),
                 "rescue_amount": Box(
                     0, 
-                    config['max_system_value'], 
+                    self.config['max_system_value'], 
                     shape=(1, )
                 ),
                 "liabilities": Box(
                     0, 
-                    config['max_system_value'], 
+                    self.config['max_system_value'], 
                     shape=(1, )
                 ),
                 "assets": Box(
                     0, 
-                    config['max_system_value'], 
+                    self.config['max_system_value'], 
                     shape=(1, )
                 ),
             }
@@ -81,19 +82,19 @@ class Volunteers_Dilemma(MultiAgentEnv):
             if self.config.get('full_information'):
                 features['other_agents_assets'] = Box(
                     0, 
-                    config['max_system_value'], 
+                    self.config['max_system_value'], 
                     shape=(1, )
                 )
                 features['other_agents_liabilities'] = Box(
                     0, 
-                    config['max_system_value'], 
+                    self.config['max_system_value'], 
                     shape=(1, )
                 )
 
             if self.config.get('reveal_other_agents_identity'):
                 features['other_agents_identity'] = Box(
                     0, 
-                    config['pool_size'], 
+                    self.config['pool_size'], 
                     shape=(1, )
                 )
             
@@ -120,7 +121,7 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # NOTE: Uniform rescue amounts are generated to improve interpretability
         # as rescue amounts are not evenly distributed when randomly generated
-        self.config['rescue_amount'] = (self.iteration % 4) + 3
+        self.config['rescue_amount'] = (self.iteration % self.rescue_range) + self.config['minimum_rescue_amount']
 
         # Generate the position and adjacency matrix
         self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)

@@ -10,33 +10,16 @@ from utils import MyCallbacks, get_args
 
 def setup(args):
 
-    env_config = {
-            'number_of_negotiation_rounds':     args.number_of_negotiation_rounds,
-            "n_agents":             args.n_agents,
-            "n_entities":           args.n_agents + 1,
-            "haircut_multiplier":   args.haircut_multiplier,
-            'discrete':             args.discrete,
-            'max_system_value':     args.max_system_value, 
-            'debug':                args.debug,
-            'alpha':                args.alpha,
-            'beta':                 args.beta,
-            'scenario':             args.scenario,
-            'invert_actions':       args.invert_actions,
-            'full_information':     args.full_information,
-            'pooled_training':      args.pooled_training,
-        }
-
-    env = Volunteers_Dilemma(env_config)
+    env = Volunteers_Dilemma(vars(args))
     obs_space = env.observation_space
     action_space = env.action_space
     
     ModelCatalog.register_custom_model("basic_model", basic_model_with_masking)
     ModelCatalog.register_custom_model("generalized_model_with_masking", Generalized_model_with_masking)
 
-
     config = {
         "env": Volunteers_Dilemma,  
-        "env_config": env_config,
+        "env_config": vars(args),
         "multiagent": {
             "policies": {
                 "policy_0": (None, obs_space, action_space, {"framework": "torch"}),
@@ -87,14 +70,14 @@ def setup(args):
         config['hiddens'] = []
         config['dueling'] = False
 
-    return config, env_config, stop
+    return config, stop
 
 if __name__ == "__main__":
     args=get_args()
     
     ray.init(local_mode = args.local_mode)
 
-    config, env_config, stop = setup(args)
+    config, stop = setup(args)
 
     results = tune.run( args.run, 
                         config=config, 

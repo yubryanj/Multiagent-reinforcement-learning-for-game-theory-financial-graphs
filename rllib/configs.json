@@ -1871,12 +1871,59 @@
         "reveal_other_agents_identity": true,
         "reveal_other_agents_beta": true,
         "scenario":"volunteers dilemma"
+    },
+    "137":{
+        "note": "Experimenting with rescue amount ranges",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": false,
+        "pooled_training": false,
+        "alpha": 1.0,
+        "beta": 1.0,
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": false,
+        "minimum_rescue_amount":3,
+        "maximum_rescue_amount":10,
+        "scenario":"volunteers dilemma"
+    },
+    "138":{
+        "note": "Experimenting with rescue amount ranges",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": false,
+        "pooled_training": false,
+        "alpha": 1.0,
+        "beta": 1.0,
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": false,
+        "minimum_rescue_amount":3,
+        "maximum_rescue_amount":15,
+        "scenario":"volunteers dilemma"
+    },
+    "139":{
+        "note": "Experimenting with rescue amount ranges",
+        "discrete": true,
+        "run" : "DQN",
+        "stop_iters": 200,
+        "n_agents": 2,
+        "debug": false,
+        "n_samples": 1,
+        "full_information": false,
+        "pooled_training": false,
+        "alpha": 1.0,
+        "beta": 1.0,
+        "reveal_other_agents_identity": false,
+        "reveal_other_agents_beta": false,
+        "minimum_rescue_amount":3,
+        "maximum_rescue_amount":20,
+        "scenario":"volunteers dilemma"
     }
-
-
-
-
-
-
-
 }
