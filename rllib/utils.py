@@ -172,12 +172,13 @@ def custom_eval_function(
     
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--as-test",            action="store_true")
-    parser.add_argument("--local-mode",         action="store_true")
-    parser.add_argument("--discrete",           action="store_true")
-    parser.add_argument("--debug",              action="store_true")
-    parser.add_argument("--basic-model",        action="store_true")
-    parser.add_argument("--invert-actions",     action="store_true")
+    parser.add_argument("--as-test",                        action="store_true")
+    parser.add_argument("--local-mode",                     action="store_true")
+    parser.add_argument("--discrete",                       action="store_true")
+    parser.add_argument("--debug",                          action="store_true")
+    parser.add_argument("--basic-model",                    action="store_true")
+    parser.add_argument("--invert-actions",                 action="store_true")
+    parser.add_argument("--evaluate-during-training",       action="store_true")
     parser.add_argument("--restore",            type=str)
     parser.add_argument("--run",                type=str,   default="DQN")
     parser.add_argument("--n-agents",           type=int,   default=2)
@@ -196,7 +197,9 @@ def get_args():
     parser.add_argument("--alpha",              type=int,   default=1)
     parser.add_argument("--beta",               type=int,   default=0)
     parser.add_argument("--scenario",           type=str,   default="volunteers dilemma")
-    parser.add_argument("--number-of-negotiation-rounds", type=int, default=1)
+    parser.add_argument("--minimum_rescue_amount",          type=int,   default=3)
+    parser.add_argument("--maximum_rescue_amount",          type=int,   default=7)
+    parser.add_argument("--number-of-negotiation-rounds",   type=int,   default=1)
     args = parser.parse_args()
     args.log_dir = f"/itet-stor/bryayu/net_scratch/results/{args.experiment_number}"
 

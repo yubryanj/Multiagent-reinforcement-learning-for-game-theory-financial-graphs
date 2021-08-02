@@ -1,6 +1,5 @@
 import numpy as np
 import seaborn as sns
-import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
 import os
@@ -8,12 +7,17 @@ sns.set_theme()
 
 from plot_utils import plot_confusion_matrix, plot_table
 
+import sys
+sys.path.insert(1, os.getcwd())
+
+from trainer import setup
+from utils import get_args
+
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment-number", type=int, default=000)
-    args = parser.parse_args()
-
+    args = get_args()
+    config, stop = setup(args)
 
     data = pd.read_csv(f'./data/checkpoints/{args.experiment_number}/experimental_data.csv')
     root_dir = f'./data/checkpoints/{args.experiment_number}'
@@ -39,6 +43,8 @@ if __name__ == "__main__":
             rescue_amounts  = subscenario_dataset['rescue_amount'], 
             save_dir        = save_dir,
             title           = 'Agent 0 Confusion Matrix',
+            n_rows          = args.maximum_rescue_amount,
+            n_cols          = args.maximum_rescue_amount
         )
 
         # Plot Agent 1's confusion matrix
@@ -46,7 +52,10 @@ if __name__ == "__main__":
             allocations     = subscenario_dataset['agent 1 actions'],
             rescue_amounts  = subscenario_dataset['rescue_amount'],
             save_dir        = save_dir,
-            title           = 'Agent 1 Confusion Matrix'
+            title           = 'Agent 1 Confusion Matrix',
+            n_rows          = args.maximum_rescue_amount,
+            n_cols          = args.maximum_rescue_amount
+
         )
 
         # Prepare the data for the table plotting
@@ -55,6 +64,7 @@ if __name__ == "__main__":
         non_dominant_contributions              = []
 
         number_of_rescues                       = 0
+        scenario                                = data['scenario'].unique()[0]
         number_of_samples                       = len(subscenario_dataset)
         agent_0_contribution                    = subscenario_dataset['agent 0 actions']
         agent_1_contribution                    = subscenario_dataset['agent 1 actions']
@@ -100,7 +110,10 @@ if __name__ == "__main__":
             ["Percentage Saved", f'{number_of_rescues/ number_of_samples}'],
             ["Average percentage of rescue amount if rescued", f'{np.mean(percentage_of_rescue_amount_if_saved)}'],
             ['Average Dominant Contribution', f'{np.mean(dominant_contributions)}'],
-            ['Average Non-Dominant Contribution', f'{np.mean(non_dominant_contributions)}']
+            ['Average Non-Dominant Contribution', f'{np.mean(non_dominant_contributions)}'],
+            ['Scenario', f'{scenario}'],
+            ['Sub scenario', f'{sub_scenario}'],
+            ['Beta', args.beta],
         ]
 
         plot_table(

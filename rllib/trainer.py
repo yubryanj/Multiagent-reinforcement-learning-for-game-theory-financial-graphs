@@ -5,7 +5,7 @@ from ray.rllib.models import ModelCatalog
 
 from custom_model import basic_model_with_masking, Generalized_model_with_masking
 from env import Volunteers_Dilemma
-from utils import MyCallbacks, get_args
+from utils import MyCallbacks, get_args, custom_eval_function
 
 
 def setup(args):
@@ -33,6 +33,28 @@ def setup(args):
         "lr": 1e-3,
         "callbacks": MyCallbacks,  
     }
+
+    # Conduct evaluation and custom metrics during training
+    if args.evaluate_during_training:
+        
+        # Evaluation
+        config["evaluation_num_workers"] = 1
+
+        # Optional custom eval function.
+        config["custom_eval_function"] = custom_eval_function
+
+        # Enable evaluation, once per training iteration.
+        config["evaluation_interval"] = 1
+
+        # Run 10 episodes each time evaluation runs.
+        config["evaluation_num_episodes"] = 100,
+
+        # Override the env config for evaluation.
+        config["evaluation_config"] = {
+            "env_config": vars(args),
+            "explore": False
+        }
+
 
     # Discrete action space
     if args.discrete:

@@ -10,8 +10,8 @@ def plot_confusion_matrix(
     rescue_amounts, 
     save_dir,
     title,
-    n_rows = 7,
-    n_cols = 7
+    n_rows = 8,
+    n_cols = 8
     ):
 
     confusion_matrix = np.zeros((n_rows, n_cols))

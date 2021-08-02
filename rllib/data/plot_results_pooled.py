@@ -1,16 +1,19 @@
 import numpy as np
 import pandas as pd
-import argparse
 import os
+
+import sys
+sys.path.insert(1, os.getcwd())
+
+from trainer import setup
+from utils import get_args
 
 from plot_utils import plot_confusion_matrix, plot_table
 from itertools import combinations
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment-number", type=int, default=000)
-    args = parser.parse_args()
-
+    args = get_args()
+    config, stop = setup(args)
 
     master_dataset = pd.read_csv(f'./data/checkpoints/{args.experiment_number}/experimental_data.csv')
     root_dir = f'./data/checkpoints/{args.experiment_number}'
@@ -40,6 +43,8 @@ if __name__ == "__main__":
             rescue_amounts  = data['rescue_amount'], 
             save_dir        = save_dir,
             title           = f'Agent 0 Confusion Matrix - beta={agent_0_beta}',
+            n_rows          = args.maximum_rescue_amount,
+            n_cols          = args.maximum_rescue_amount
         )
 
         # Plot Agent 1's confusion matrix
@@ -47,7 +52,9 @@ if __name__ == "__main__":
             allocations     = data['agent 1 actions'],
             rescue_amounts  = data['rescue_amount'],
             save_dir        = save_dir,
-            title           = f'Agent 1 Confusion Matrix - beta={agent_1_beta}'
+            title           = f'Agent 1 Confusion Matrix - beta={agent_1_beta}',
+            n_rows          = args.maximum_rescue_amount,
+            n_cols          = args.maximum_rescue_amount
         )
 
         # Prepare the data for the table plotting
@@ -124,6 +131,8 @@ if __name__ == "__main__":
         rescue_amounts  = master_dataset['rescue_amount'], 
         save_dir        = root_dir,
         title           = 'Aggregated Agent 0 Confusion Matrix',
+        n_rows          = args.maximum_rescue_amount,
+        n_cols          = args.maximum_rescue_amount
     )
 
     plot_confusion_matrix(
@@ -131,4 +140,6 @@ if __name__ == "__main__":
         rescue_amounts  = master_dataset['rescue_amount'], 
         save_dir        = root_dir,
         title           = 'Aggregated Agent 1 Confusion Matrix',
+        n_rows          = args.maximum_rescue_amount,
+        n_cols          = args.maximum_rescue_amount
     )
