@@ -122,13 +122,12 @@ class Generalized_model_with_masking(TorchModelV2, nn.Module):
         number_of_embeddings    = model_config.get('custom_model_config').get('num_embeddings')
         embedding_size          = self.args.embedding_size
 
-        # TODO: Need to know the number of layers, so need to know the configs
-        self.layers = {
+        self.layers = torch.nn.ModuleDict({
             'assets':           embedding_network(number_of_embeddings, embedding_size),
             'liabilities':      embedding_network(number_of_embeddings, embedding_size),
             'net_position':     embedding_network(number_of_embeddings, embedding_size),
             'rescue_amount':    embedding_network(number_of_embeddings, embedding_size),
-        }
+        })
 
         if self.args.full_information:
             self.layers['other_agents_assets']      = embedding_network(number_of_embeddings, embedding_size)

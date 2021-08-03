@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
         # Initialize and load the agent
         agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
-        agent.restore(f"{path}/checkpoint_000{checkpoint}/checkpoint-{checkpoint}")
+        agent.restore(f"{path}/checkpoint_{str.zfill(str(checkpoint), 6)}/checkpoint-{checkpoint}")
 
         # instantiate env class
         env = Volunteers_Dilemma(vars(args))

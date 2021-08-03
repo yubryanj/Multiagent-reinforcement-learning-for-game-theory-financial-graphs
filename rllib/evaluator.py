@@ -74,11 +74,11 @@ if __name__ == "__main__":
         # Initialize and load the agent
         agent = DQNTrainer(config=config, env=Volunteers_Dilemma)
 
-        # Naming convnetion changed in latest version of Ray
+        # Naming convnention changed in latest version of Ray
         if os.path.exists(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}"):
             agent.restore(f"{path}/checkpoint_{checkpoint}/checkpoint-{checkpoint}")
         else:
-            agent.restore(f"{path}/checkpoint_000{checkpoint}/checkpoint-{checkpoint}")
+            agent.restore(f"{path}/checkpoint_{str.zfill(str(checkpoint), 6)}/checkpoint-{checkpoint}")
 
         # instantiate env class
         env = Volunteers_Dilemma(vars(args))

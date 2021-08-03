@@ -250,7 +250,6 @@ class Volunteers_Dilemma(MultiAgentEnv):
                     rewards[i] = self.config.get('alpha') * reward.flatten()[i] + \
                                 self.config.get('beta') * reward.flatten()[(i+1)%self.config['n_agents']]
             else:
-                # print(self.config.get('agent_0_beta',), self.config.get('agent_1_beta'))
                 rewards[0] = self.config.get('alpha') * reward.flatten()[0] + \
                                 self.config.get('agent_0_beta') * reward.flatten()[1]
                 rewards[1] = self.config.get('alpha') * reward.flatten()[1] + \

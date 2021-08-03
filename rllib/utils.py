@@ -179,6 +179,7 @@ def get_args():
     parser.add_argument("--basic-model",                    action="store_true")
     parser.add_argument("--invert-actions",                 action="store_true")
     parser.add_argument("--evaluate-during-training",       action="store_true")
+    parser.add_argument("--pooled-training",                action="store_true")
     parser.add_argument("--restore",            type=str)
     parser.add_argument("--run",                type=str,   default="DQN")
     parser.add_argument("--n-agents",           type=int,   default=2)

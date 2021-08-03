@@ -6,13 +6,18 @@ if __name__ == "__main__":
 
     # Define the games and their associated experiments
     dict = {
-        'Volunteers Dilemma':{
-            # TODO: List is longer
-            'experiment_numbers':[81,82,83,84,85]
+        'Volunteers Dilemma - Full Information':{
+            'experiment_numbers':[101,102,103,104,105,106]
         },
-        'Coordination Game':{
+        'Coordination Game - Full Information':{
             'experiment_numbers':[94,95,96,97,98,99]
-        }
+        },
+        # 'Volunteers Dilemma':{
+        #     'experiment_numbers':[149,150,151,152,153,154]
+        # },
+        # 'Coordination Game':{
+        #     'experiment_numbers':[81,82,83,84,85,86]
+        # },
     }
 
     # Pre-allocate storage to collect results
