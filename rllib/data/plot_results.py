@@ -23,7 +23,14 @@ if __name__ == "__main__":
     root_dir = f'./data/checkpoints/{args.experiment_number}'
 
     # Allocate Storage
-    aggregated_statistics = []
+    subscenario_statistics = []
+
+    aggregated_percentage_of_rescue_amount_if_saved    = []
+    aggregated_dominant_contributions                  = []
+    aggregated_non_dominant_contributions              = []
+    aggregated_number_of_rescues                       = 0
+    total_number_of_samples                             = len(data)
+
 
     for sub_scenario in sorted(data['sub_scenarios'].unique()):
 
@@ -105,6 +112,13 @@ if __name__ == "__main__":
                 dominant_contributions.append(agent_0_contribution / total_contribution)
                 non_dominant_contributions.append(agent_1_contribution / total_contribution)
 
+        # Append to aggregated dataset
+        aggregated_number_of_rescues += number_of_rescues
+        aggregated_dominant_contributions.extend(dominant_contributions)
+        aggregated_non_dominant_contributions.extend(non_dominant_contributions)
+        aggregated_percentage_of_rescue_amount_if_saved.extend(percentage_of_rescue_amount_if_saved)
+
+
         # Prepare statistics
         table_data = [
             ["Percentage Saved", f'{number_of_rescues/ number_of_samples}'],
@@ -115,32 +129,52 @@ if __name__ == "__main__":
             ['Sub scenario', f'{sub_scenario}'],
             ['Beta', args.beta],
         ]
+        
+        df = pd.DataFrame.from_records(table_data)
+        df.columns = ["Description", "Statistic"]
 
-        plot_table(
-            data            = table_data,
-            save_dir        = save_dir,
-            title           = 'Statistics'
-        )
+        df.to_csv(
+            f'{save_dir}/statistics.csv', 
+            index=False,
+        ) 
+
 
         # Aggregate statistics
         for name, statistic in table_data:
-            aggregated_statistics.append([sub_scenario, name, statistic])
+            subscenario_statistics.append([sub_scenario, name, statistic])
     
-    # Plot aggregated statistics for uniformly mixed
     if len(data['sub_scenarios'].unique()) > 1:
-        plot_table(
-            data        = aggregated_statistics,
-            save_dir    = root_dir,
-            title       = 'Aggregated Statistics'
-        )
 
-        df = pd.DataFrame.from_records(aggregated_statistics)
+
+        # Svae sub scenario statistics into a csv
+        df = pd.DataFrame.from_records(subscenario_statistics)
         df.columns = ["Sub Scenario", "Description", "Statistic"]
+
+        df.to_csv(
+            f'{root_dir}/subscenario_statistics.csv', 
+            index=False,
+        ) 
+
+        # Prepare, plot, and save aggregated statistics
+        aggregated_table_data = [
+            ["Aggregated Percentage Saved", f'{aggregated_number_of_rescues/ total_number_of_samples}'],
+            ["Aggregated Average percentage of rescue amount if rescued", f'{np.mean(aggregated_percentage_of_rescue_amount_if_saved)}'],
+            ['Aggregated Average Dominant Contribution', f'{np.mean(aggregated_dominant_contributions)}'],
+            ['Aggregated Average Non-Dominant Contribution', f'{np.mean(aggregated_non_dominant_contributions)}'],
+            ['Scenario', f'{scenario}'],
+            ['Beta', args.beta],
+        ]
+
+        df = pd.DataFrame.from_records(aggregated_table_data)
+        df.columns = ["Description", "Statistic"]
 
         df.to_csv(
             f'{root_dir}/aggregated_statistics.csv', 
             index=False,
-        )  
+        ) 
+
+
+ 
 
 
 

@@ -606,7 +606,10 @@ class Generator:
         #TODO: Save the sub scenario into the system and retrieve it in the environment
 
         # Select uniformly at random a rescue amount from 3-6
-        config['rescue_amount'] = np.random.randint(3,7)
+        config['rescue_amount'] = np.random.randint(
+            config['minimum_rescue_amount'],
+            config['maximum_rescue_amount']
+        )
 
         # Return the appropriate scenario
         if   scenario == 0:
