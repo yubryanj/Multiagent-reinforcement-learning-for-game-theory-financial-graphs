@@ -32,6 +32,10 @@ if __name__ == "__main__":
         completion_checkpoint = configs.get(experiment_id).get('stop_iters')
         successful_trials = []
 
+        # TODO: Consider setting a check for latest experiment based on n_samples
+
+        # TODO: Check date on the experiments for latest sample
+
         # Look into the trial directory
         for trial_run in os.listdir(experiment_trials_dir):
 

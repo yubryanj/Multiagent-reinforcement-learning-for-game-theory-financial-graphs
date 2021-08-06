@@ -9,6 +9,9 @@ import argparse
 import json
 import os
 import pandas as pd
+import prettytable
+
+
 
 from ray.rllib.env import BaseEnv
 from ray.rllib.policy import Policy
@@ -18,6 +21,9 @@ from ray.rllib.utils.annotations import PublicAPI
 from ray.rllib.utils.deprecation import deprecation_warning
 from ray.rllib.utils.typing import AgentID, PolicyID
 from typing import Dict, Optional, TYPE_CHECKING
+
+
+from generator import Generator
 
 
 class MyCallbacks(DefaultCallbacks):
@@ -113,7 +119,8 @@ class MyCallbacks(DefaultCallbacks):
 
         # # log_dir = worker._original_kwargs.get('log_dir')
         pass
-        
+
+
 def custom_eval_function(
     trainer, 
     eval_workers
@@ -221,3 +228,187 @@ def get_args():
 
     return args
 
+
+def print_graph(
+    position,
+    adjacency_matrix, 
+    config
+    ):
+    print('\\begin{figure}[!htb]')
+    print('    \centering')
+    print('    \\begin{tikzpicture}[node distance={25mm}, thick, main/.style = {draw, circle}]')
+    print('        \\node[main] (1) {$A_{' + str(position[2]) + '}$}; ')
+    print('        \\node[main] (2) [below left of=1] {$B_{' + str(position[0]) + '}$};')
+    print('        \\node[main] (3) [below right of=1] {$C_{' + str(position[1]) + '}$};')
+    print('        \draw[->] (1) -- node[midway, above left] {' + str(adjacency_matrix[2][0]) + '} (2);')
+    print('        \draw[->] (1) -- node[midway, above right] {' + str(adjacency_matrix[2][1]) + '} (3);')
+    print('    \\end{tikzpicture}')
+    print('    \\caption{\\textbf{' + f'{config["scenario"]}' +' Financial Graph} Bank $\mathit{B}$ with capitalization of ' + str(position[0]) + ' assets and bank $\mathit{C}$ with capitalized with ' + str(position[1]) + ' of assets face the dilemma of whether or not to rescue bank $\mathit{A}$.  Bank $\mathit{A}$ has capitalization of ' + str(position[2]) + ' assets but total outgoing liabilities of ' + str(np.sum(adjacency_matrix[2])) + ' assets with '  + str(adjacency_matrix[2][0]) + ' due bank $\mathit{B}$ and ' + str(adjacency_matrix[2][1]) + ' due bank $\mathit{C}$.  A rescue would only be successful if '+ f'{config["rescue_amount"]}' + ' units of assets or greater is contributed to bank $\mathit{A}$.}')
+    print('    \\label{fig:' + f'{config["scenario"]}' +': financial graph}')
+    print('\\end{figure}')
+
+
+def print_table(
+    data,
+    config,
+    x = 3,
+    y = 2):
+
+    x_value = str(eval(data[x][y].strip('\\textbf').strip('{').strip('}'))[0])
+    y_value = str(eval(data[x][y].strip('\\textbf').strip('{').strip('}'))[1])
+
+    print('\\begin{figure}[!htb]')
+    print('    \\centering')
+    print('    \\begin{tabular}{p{5pt}c|cccccc}')
+    print('        \multicolumn{1}{}{} & \multicolumn{7}{c}{Bank C} \\\\')
+    print('            ~ & ~ &  0 & 1 & 2 & 3 & 4 & 5   \\\\')
+    print('        \cline{2-8}')
+    print('        \multirow{6}{*}{\\rotatebox[origin=c]{90}{Bank B}}')
+
+    for row_id, row in enumerate(data):
+        print(f'            & {row_id} & {" & ".join(row)}\\\\')
+
+    print('    \end{tabular}')
+    print('    \caption{\\textbf{' +  f'{config["scenario"]}' +' Payoff Matrix} The rows of the table represent bank $\mathit{B}$\'s contributions and similarly the columns represent bank $\mathit{C}$\'s contributions.  The payoff to invalid actions are reported as a dash (-).  Each cell in the table reports the payoff of a joint-contribution as a tuple with the first number reporting bank $\mathit{B}$\'s payoff and the second number reporting bank $\mathit{C}$\'s payoff.  For example, if bank $\mathit{B}$ contributes ' + f'{x}' + ' assets and bank $\mathit{C}$ contributes ' + f'{y}' + ' assets, the payoff tuple is ' + data[x][y]  + ' reflecting a payoff of '+ x_value +' assets to bank $\mathit{B}$ and ' + y_value +' assets to bank $\mathit{C}$. \\newline \hspace*{10mm} As per figure \\ref{fig:' + f'{config["scenario"]}' + ': financial graph}, a successful rescue occurs if ' + f'{config["rescue_amount"]}' + ' units of assets or greater is contributed to bank $\mathit{A}$.  Made bold within the table are the nash equilibriums, policies where neither bank $\mathit{B}$ nor bank $\mathit{C}$ can unilaterally improve their outcomes. Specific to this financial graph, the nash equilibriums occur when the joint-allocation sum to the rescue amount.}')
+    print('    \label{fig:' + f'{config["scenario"]}' + ': Payoff Matrix}')
+    print('\end{figure}')
+
+
+
+
+def compute_payoff_matrices():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scenario",           type=str,   default="Volunteers Dilemma")
+    args = parser.parse_args()
+
+    config = {}
+
+    scenarios = {
+        "Volunteers Dilemma": {
+            "position": np.array(
+                [5,5,12]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+        "Coordination Game": {
+            "position": np.array(
+                [3,3,12]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+        "No one can rescue": {
+            "position": np.array(
+                [1,1,12]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+        "Only Agent 0 can rescue": {
+            "position": np.array(
+                [6,2,12]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+        "Only Agent 1 can rescue": {
+            "position": np.array(
+                [2,6,12]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+        "Not in Default": {
+            "position": np.array(
+                [6,6,20]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+
+
+        
+    }
+
+    config['scenario'] = args.scenario
+    position = scenarios[config['scenario']]['position']
+    adjacency_matrix = scenarios[config['scenario']]['adjacency_matrix']
+
+    config['rescue_amount'] = max(np.sum(adjacency_matrix[2]) - position[2], 0)
+
+    maximum_payoff = 6
+    # payoff_matrix = prettytable.PrettyTable([str(i) for i in range(maximum_payoff)])
+    data = []
+
+    for i in range(maximum_payoff):
+        payoffs = []
+        for j in range(maximum_payoff):
+            
+            if i <= position[0] and j<= position[1]:
+            
+                agent_0_allocation = i
+                agent_1_allocation = j
+                total_allocation = agent_0_allocation + agent_1_allocation
+                
+
+                if total_allocation >= config['rescue_amount']:
+                    b_reward = adjacency_matrix[2][0] - agent_0_allocation
+                    c_reward = adjacency_matrix[2][1] - agent_1_allocation
+                else:
+                    b_reward = int((0.5 * adjacency_matrix[2][0]) - agent_0_allocation)
+                    c_reward = int((0.5 * adjacency_matrix[2][1]) - agent_1_allocation)
+
+                if total_allocation == config['rescue_amount']:
+                    payoffs.append("\\textbf{" + f'{b_reward}, {c_reward}' + "}")
+                else:
+                    payoffs.append(f'{b_reward}, {c_reward}')
+            else:
+                payoffs.append('-')
+
+        data.append(payoffs)
+
+
+
+    print("\n\n")
+    print_graph(position, adjacency_matrix, config)
+
+    print("\n\n")
+
+    if args.scenario not in ['No one can rescue', 'Only Agent 1 can rescue', 'Only Agent 0 can rescue']:
+        print_table(
+            data, 
+            config
+        )
+    else:
+
+        print_table(
+            data, 
+            config, 
+            x = position[0] - 1, 
+            y = position[1] - 1,
+        )
+
+
+
+
+if __name__ == "__main__":
+    compute_payoff_matrices()
