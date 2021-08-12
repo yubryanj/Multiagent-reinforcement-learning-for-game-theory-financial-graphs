@@ -176,7 +176,7 @@ def custom_eval_function(
 
     return metrics
 
-    
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--as-test",                        action="store_true")
@@ -187,11 +187,12 @@ def get_args():
     parser.add_argument("--invert-actions",                 action="store_true")
     parser.add_argument("--evaluate-during-training",       action="store_true")
     parser.add_argument("--pooled-training",                action="store_true")
+    parser.add_argument("--full-information",               action="store_true")
     parser.add_argument("--restore",            type=str)
     parser.add_argument("--run",                type=str,   default="DQN")
     parser.add_argument("--n-agents",           type=int,   default=2)
     parser.add_argument("--embedding-size",     type=int,   default=32)
-    parser.add_argument("--n-workers",          type=int,   default=1)
+    parser.add_argument("--n-workers",          type=int,   default=5)
     parser.add_argument("--n-samples",          type=int,   default=1)
     parser.add_argument("--n-gpus",             type=int,   default=0)
     parser.add_argument("--stop-iters",         type=int,   default=1)
@@ -234,7 +235,7 @@ def print_graph(
     adjacency_matrix, 
     config
     ):
-    print('\\begin{figure}[!htb]')
+    print('\\begin{figure}[p]')
     print('    \centering')
     print('    \\begin{tikzpicture}[node distance={25mm}, thick, main/.style = {draw, circle}]')
     print('        \\node[main] (1) {$A_{' + str(position[2]) + '}$}; ')
@@ -245,7 +246,7 @@ def print_graph(
     print('    \\end{tikzpicture}')
     print('    \\caption{\\textbf{' + f'{config["scenario"]}' +' Financial Graph} Bank $\mathit{B}$ with capitalization of ' + str(position[0]) + ' assets and bank $\mathit{C}$ with capitalized with ' + str(position[1]) + ' of assets face the dilemma of whether or not to rescue bank $\mathit{A}$.  Bank $\mathit{A}$ has capitalization of ' + str(position[2]) + ' assets but total outgoing liabilities of ' + str(np.sum(adjacency_matrix[2])) + ' assets with '  + str(adjacency_matrix[2][0]) + ' due bank $\mathit{B}$ and ' + str(adjacency_matrix[2][1]) + ' due bank $\mathit{C}$.  A rescue would only be successful if '+ f'{config["rescue_amount"]}' + ' units of assets or greater is contributed to bank $\mathit{A}$.}')
     print('    \\label{fig:' + f'{config["scenario"]}' +': financial graph}')
-    print('\\end{figure}')
+    # print('\\end{figure}')
 
 
 def print_table(
@@ -257,8 +258,8 @@ def print_table(
     x_value = str(eval(data[x][y].strip('\\textbf').strip('{').strip('}'))[0])
     y_value = str(eval(data[x][y].strip('\\textbf').strip('{').strip('}'))[1])
 
-    print('\\begin{figure}[!htb]')
-    print('    \\centering')
+    # print('\\begin{figure}[!htb]')
+    # print('    \\centering')
     print('    \\begin{tabular}{p{5pt}c|cccccc}')
     print('        \multicolumn{1}{}{} & \multicolumn{7}{c}{Bank C} \\\\')
     print('            ~ & ~ &  0 & 1 & 2 & 3 & 4 & 5   \\\\')
@@ -269,11 +270,9 @@ def print_table(
         print(f'            & {row_id} & {" & ".join(row)}\\\\')
 
     print('    \end{tabular}')
-    print('    \caption{\\textbf{' +  f'{config["scenario"]}' +' Payoff Matrix} The rows of the table represent bank $\mathit{B}$\'s contributions and similarly the columns represent bank $\mathit{C}$\'s contributions.  The payoff to invalid actions are reported as a dash (-).  Each cell in the table reports the payoff of a joint-contribution as a tuple with the first number reporting bank $\mathit{B}$\'s payoff and the second number reporting bank $\mathit{C}$\'s payoff.  For example, if bank $\mathit{B}$ contributes ' + f'{x}' + ' assets and bank $\mathit{C}$ contributes ' + f'{y}' + ' assets, the payoff tuple is ' + data[x][y]  + ' reflecting a payoff of '+ x_value +' assets to bank $\mathit{B}$ and ' + y_value +' assets to bank $\mathit{C}$. \\newline \hspace*{10mm} As per figure \\ref{fig:' + f'{config["scenario"]}' + ': financial graph}, a successful rescue occurs if ' + f'{config["rescue_amount"]}' + ' units of assets or greater is contributed to bank $\mathit{A}$.  Made bold within the table are the nash equilibriums, policies where neither bank $\mathit{B}$ nor bank $\mathit{C}$ can unilaterally improve their outcomes. Specific to this financial graph, the nash equilibriums occur when the joint-allocation sum to the rescue amount.}')
+    print('    \caption{\\textbf{' +  f'{config["scenario"]}' +' Payoff Matrix} The rows of the table represent bank $\mathit{B}$\'s contributions and similarly the columns represent bank $\mathit{C}$\'s contributions.  The payoff to invalid joint-actions are reported as a dash (-).  Each cell in the table reports the payoff of a joint-contribution as a tuple with the first number reporting bank $\mathit{B}$\'s payoff and the second number reporting bank $\mathit{C}$\'s payoff.  For example, if bank $\mathit{B}$ contributes ' + f'{x}' + ' assets and bank $\mathit{C}$ contributes ' + f'{y}' + ' assets, the payoff tuple is ' + data[x][y]  + ' reflecting a payoff of '+ x_value +' assets to bank $\mathit{B}$ and ' + y_value +' assets to bank $\mathit{C}$. \\newline \hspace*{10mm} As per figure \\ref{fig:' + f'{config["scenario"]}' + ': financial graph}, a successful rescue occurs if ' + f'{config["rescue_amount"]}' + ' units of assets or greater is contributed to bank $\mathit{A}$.  Made bold within the table are the nash equilibriums, policies where neither bank $\mathit{B}$ nor bank $\mathit{C}$ can unilaterally improve their outcomes. Specific to this financial graph, the nash equilibriums occur when the joint-allocation sum to the rescue amount.}')
     print('    \label{fig:' + f'{config["scenario"]}' + ': Payoff Matrix}')
     print('\end{figure}')
-
-
 
 
 def compute_payoff_matrices():
@@ -314,7 +313,7 @@ def compute_payoff_matrices():
                 [8,8,0]
             ])
         },
-        "Only Agent 0 can rescue": {
+        "Only Bank B can rescue": {
             "position": np.array(
                 [6,2,12]
             ),
@@ -324,7 +323,7 @@ def compute_payoff_matrices():
                 [8,8,0]
             ])
         },
-        "Only Agent 1 can rescue": {
+        "Only Bank C can rescue": {
             "position": np.array(
                 [2,6,12]
             ),
@@ -344,6 +343,48 @@ def compute_payoff_matrices():
                 [8,8,0]
             ])
         },
+        "Pure Coordination": {
+            "position": np.array(
+                [2,2,4]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [4,4,0]
+            ])
+        },
+        "Battle of the Sexes": {
+            "position": np.array(
+                [2,2,8]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [4,8,0]
+            ])
+        },
+        "Stag Hunt": {
+            "position": np.array(
+                [2,2,12]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+        "Mixed Coordination": {
+            "position": np.array(
+                [4,4,12]
+            ),
+            "adjacency_matrix":np.array([
+                [0,0,0],
+                [0,0,0],
+                [8,8,0]
+            ])
+        },
+
+
 
 
         
@@ -391,9 +432,16 @@ def compute_payoff_matrices():
     print("\n\n")
     print_graph(position, adjacency_matrix, config)
 
-    print("\n\n")
+    print('    \\vspace{1cm}')
 
-    if args.scenario not in ['No one can rescue', 'Only Agent 1 can rescue', 'Only Agent 0 can rescue']:
+    if args.scenario not in [\
+        'No one can rescue', 
+        'Only Agent 1 can rescue',
+        'Only Agent 0 can rescue', 
+        'Pure Coordination',
+        'Battle of the Sexes',
+        'Stag Hunt'
+        ]:
         print_table(
             data, 
             config
@@ -408,7 +456,72 @@ def compute_payoff_matrices():
         )
 
 
+def enumerate_number_of_unique_graphs():
+    scenarios =[
+        'volunteers dilemma',
+        'coordination game',
+        'not enough money together',
+        'not in default',
+        'only agent 0 can rescue',
+        'only agent 1 can rescue'
+    ]
+
+    generator = Generator()
+
+    results =[]
+
+    for scenario in scenarios:
+
+        # Define the rescue amount ranges
+        if scenario not in ['not in default']:
+            rescue_amounts = range(3,7)
+        else:
+            rescue_amounts = [0]
+
+        # Generate scenarios
+        for rescue_amount in rescue_amounts:
+
+            save_dir = f'./data/generator_statistics/{rescue_amount}'
+
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+
+            count = 0
+            graphs = []
+
+            configs = {
+                'scenario':             scenario,
+                'rescue_amount':        rescue_amount,
+                'n_agents':             2,
+                'n_entities':           3,
+                'max_system_value':     100.0,
+                'haircut_multiplier':   0.50
+            }
+            for i in range(int(10000)):
+                position, adjacency_matrix = generator.generate_scenario(configs)
+
+                features = np.concatenate([position,adjacency_matrix.flatten()])
+
+                if not any((features == x).all() for x in graphs):
+                    graphs.append(features)
+                    count += 1
+        
+            results.append([scenario, rescue_amount, count])
+
+            df = pd.DataFrame(graphs, columns=['p0','p1','p2','a00','a01','a02','a11','a12','a13','a21','a22','a23'])
+            df.to_csv(f'{save_dir}/{scenario}.csv', index=False)
+
+            del graphs
+
+
+    df = pd.DataFrame.from_records(results, columns=['Scenario', 'Rescue Amount', 'Unique Graphs'])
+    df.to_csv(
+        f'./data/generator_statistics/generator_statistics.csv', 
+        index=False,
+    )  
+
+
 
 
 if __name__ == "__main__":
-    compute_payoff_matrices()
+    enumerate_number_of_unique_graphs()

@@ -61,6 +61,12 @@ if __name__ == "__main__":
         percentage_of_rescue_amount_if_saved    = []
         dominant_contributions                  = []
         non_dominant_contributions              = []
+        percentage_saved_by_rescue_amount       = {}
+
+        # Insert a key per rescue amount
+        for rescue_amount in sorted(data['rescue_amount'].unique()):
+            percentage_saved_by_rescue_amount[rescue_amount] = []
+
 
         number_of_samples = len(data)
         number_of_rescues = ((data['agent 0 actions'] + data['agent 1 actions']) >= data['rescue_amount']).sum()
@@ -74,6 +80,10 @@ if __name__ == "__main__":
 
             if  total_contribution >= rescue_amount and rescue_amount != 0:
                 percentage_of_rescue_amount_if_saved.append( total_contribution / rescue_amount)
+                percentage_saved_by_rescue_amount[rescue_amount].append(1.0)
+            else:
+                percentage_saved_by_rescue_amount[rescue_amount].append(0.0)
+
             
             # Calculate contributions
             if total_contribution == 0:
@@ -85,6 +95,21 @@ if __name__ == "__main__":
             else:
                 dominant_contributions.append(agent_0_contribution / total_contribution)
                 non_dominant_contributions.append(agent_1_contribution / total_contribution)
+
+        # Prepare percentage saved by rescue amount
+        percentage_saved_by_rescue_amount_table = []
+        for rescue_amount in percentage_saved_by_rescue_amount.keys():
+            percentage_saved_by_rescue_amount_table.append( 
+                [f'percentage saved by rescue amount - {rescue_amount}',np.mean(percentage_saved_by_rescue_amount[rescue_amount])]
+            )
+        
+        df = pd.DataFrame.from_records(percentage_saved_by_rescue_amount_table)
+        df.columns = ["Percentage saved by rescue amount", "Percentage Saved"]
+
+        df.to_csv(
+            f'{save_dir}/percentage_saved_by_rescue_amount.csv', 
+            index=False,
+        ) 
 
         # Prepare statistics
         table_data = [
@@ -109,13 +134,14 @@ if __name__ == "__main__":
                 name, 
                 statistic
             ])
-    
-    # Plot aggregated statistics for uniformly mixed
-    plot_table(
-        data        = aggregated_statistics,
-        save_dir    = root_dir,
-        title       = 'Aggregated Statistics'
-    )
+
+        for name, statistic in percentage_saved_by_rescue_amount_table:
+            aggregated_statistics.append([
+            f'{agent_0_policy} beta={agent_0_beta}-{agent_1_policy} beta={agent_1_beta}', 
+            name, 
+            statistic
+        ])
+
 
     df = pd.DataFrame.from_records(aggregated_statistics)
     df.columns = ["Agent 0 Policy - Agent 1 Policy", "Description", "Statistic"]

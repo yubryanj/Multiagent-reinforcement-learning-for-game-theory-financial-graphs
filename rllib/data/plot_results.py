@@ -1,7 +1,6 @@
 import numpy as np
 import seaborn as sns
 import pandas as pd
-import argparse
 import os
 sns.set_theme()
 
@@ -26,11 +25,13 @@ if __name__ == "__main__":
     subscenario_statistics = []
 
     aggregated_percentage_of_rescue_amount_if_saved    = []
+    aggregate_percentage_saved_by_rescue_amount        = []
     aggregated_dominant_contributions                  = []
     aggregated_non_dominant_contributions              = []
     aggregated_number_of_rescues                       = 0
-    total_number_of_samples                             = len(data)
+    total_number_of_samples                            = len(data)
 
+    
 
     for sub_scenario in sorted(data['sub_scenarios'].unique()):
 
@@ -65,10 +66,47 @@ if __name__ == "__main__":
 
         )
 
+        # Plot confusion matrices per trial
+
+        for trial in sorted(data['trials'].unique()):
+
+            trial_subdataset = data[data['trials'] == trial]
+            trial_save_dir = f'{save_dir}/{trial}'
+            if not os.path.exists(trial_save_dir):
+                os.makedirs(trial_save_dir)
+
+            # Plot Agent 0's confusion matrix
+            plot_confusion_matrix(
+                allocations     = trial_subdataset['agent 0 actions'], 
+                rescue_amounts  = trial_subdataset['rescue_amount'], 
+                save_dir        = trial_save_dir,
+                title           = 'Agent 0 Confusion Matrix',
+                n_rows          = args.maximum_rescue_amount,
+                n_cols          = args.maximum_rescue_amount
+            )
+
+            # Plot Agent 1's confusion matrix
+            plot_confusion_matrix(
+                allocations     = trial_subdataset['agent 1 actions'],
+                rescue_amounts  = trial_subdataset['rescue_amount'],
+                save_dir        = trial_save_dir,
+                title           = 'Agent 1 Confusion Matrix',
+                n_rows          = args.maximum_rescue_amount,
+                n_cols          = args.maximum_rescue_amount
+
+            )
+
+
+
         # Prepare the data for the table plotting
         percentage_of_rescue_amount_if_saved    = []
         dominant_contributions                  = []
         non_dominant_contributions              = []
+        percentage_saved_by_rescue_amount       = {}
+
+        # Insert a key per rescue amount
+        for rescue_amount in sorted(subscenario_dataset['rescue_amount'].unique()):
+            percentage_saved_by_rescue_amount[rescue_amount] = []
 
         number_of_rescues                       = 0
         scenario                                = data['scenario'].unique()[0]
@@ -76,8 +114,7 @@ if __name__ == "__main__":
         agent_0_contribution                    = subscenario_dataset['agent 0 actions']
         agent_1_contribution                    = subscenario_dataset['agent 1 actions']
         total_contribution                      = agent_0_contribution + agent_1_contribution
-        rescue_amount                           = subscenario_dataset['rescue_amount']
-        # number_of_rescues                       = ( total_contribution >= rescue_amount ).sum()
+        
 
         # Iterate through every row and calculate statistics
         for index, row in subscenario_dataset.iterrows():
@@ -96,10 +133,12 @@ if __name__ == "__main__":
                 if total_contribution > rescue_amount:
                     number_of_rescues += 1
 
-
             # TODO: This number breaks in 'not in default" as the rescue amount is always 0
             if  total_contribution >= rescue_amount and rescue_amount != 0:
                 percentage_of_rescue_amount_if_saved.append( total_contribution / rescue_amount)
+                percentage_saved_by_rescue_amount[rescue_amount].append(1.0)
+            else:
+                percentage_saved_by_rescue_amount[rescue_amount].append(0.0)
             
             # Calculate contributions
             if total_contribution == 0:
@@ -111,6 +150,25 @@ if __name__ == "__main__":
             else:
                 dominant_contributions.append(agent_0_contribution / total_contribution)
                 non_dominant_contributions.append(agent_1_contribution / total_contribution)
+
+            pass    
+
+
+        # Prepare percentage saved by rescue amount
+        percentage_saved_by_rescue_amount_table = []
+        for rescue_amount in percentage_saved_by_rescue_amount.keys():
+            percentage_saved_by_rescue_amount_table.append( 
+                [f'{sub_scenario}-{rescue_amount}',np.mean(percentage_saved_by_rescue_amount[rescue_amount])]
+            )
+
+        df = pd.DataFrame.from_records(percentage_saved_by_rescue_amount_table)
+        df.columns = ["Sub scenario - rescue amount", "Percentage Saved"]
+
+        df.to_csv(
+            f'{save_dir}/percentage_saved_by_rescue_amount.csv', 
+            index=False,
+        ) 
+
 
         # Append to aggregated dataset
         aggregated_number_of_rescues += number_of_rescues
@@ -142,6 +200,9 @@ if __name__ == "__main__":
         # Aggregate statistics
         for name, statistic in table_data:
             subscenario_statistics.append([sub_scenario, name, statistic])
+
+
+        
     
     if len(data['sub_scenarios'].unique()) > 1:
 

@@ -39,7 +39,17 @@ def plot_confusion_matrix(
     sns.heatmap((pd.DataFrame(df_cm.sum(axis=0))).transpose(), ax=ax2,  annot=True, cmap="Blues", cbar=False, xticklabels=False, yticklabels=False)
     sns.heatmap(pd.DataFrame(df_cm.sum(axis=1)), ax=ax3,  annot=True, cmap="Blues", cbar=False, xticklabels=False, yticklabels=False)
 
-    plt.savefig(f'{save_dir}/{title}.png')
+    plt.savefig(
+        f'{save_dir}/{title}_with_labels.png',
+    )
+
+    ax1.set(xlabel='', ylabel='')
+    ax1.set_title('')
+    plt.savefig(
+        f'{save_dir}/{title}_without_labels.png',
+        bbox_inches = 'tight',
+        pad_inches = 0.2
+    )
     plt.clf()
     plt.close(fig)
 
@@ -66,24 +76,42 @@ def line_plot_with_variances(
     ):
 
     df = pd.DataFrame(data)
-    sns.lineplot(data=df, x='Beta', y='Dominant Contributions')
+    sns.lineplot(data=df, x='Beta', y='Dominant Contributions', hue='Scenario')
     plt.title("Beta x Dominant Contributions")
-
-    plt.savefig(f'{save_dir}/beta_by_dominant_contributions.png')
+    plt.savefig(
+        f'{save_dir}/beta_by_dominant_contributions.png', 
+        bbox_inches = 'tight',
+        pad_inches = 0
+    )
     plt.clf()
 
-    sns.lineplot(data=df, x='Beta', y='Percentage of Rescue Amount')
+    sns.lineplot(data=df, x='Beta', y='Percentage of Rescue Amount', hue='Scenario')
     plt.title("Beta x Percentage of Rescue Amount")
-
-    plt.savefig(f'{save_dir}/beta_by_percentage_of_rescue.png')
+    plt.savefig(
+        f'{save_dir}/beta_by_percentage_of_rescue.png',
+        bbox_inches = 'tight',
+        pad_inches = 0
+    )
     plt.clf()
 
 
-    sns.lineplot(data=df, x='Beta', y='Successful Rescues')
+    sns.lineplot(data=df, x='Beta', y='Successful Rescues', hue='Scenario')
     plt.title("Beta x Successful Rescues")
-
-    plt.savefig(f'{save_dir}/beta_by_successful_rescues.png')
+    plt.savefig(f'{save_dir}/beta_by_successful_rescues.png',
+        bbox_inches = 'tight',
+        pad_inches = 0
+    )
     plt.clf()
+
+    sns.lineplot(data=df, x='Beta', y='Total Contribution', hue='Scenario')
+    plt.title("Beta x Total Contributions as percentage of rescue amount")
+    plt.savefig(
+        f'{save_dir}/beta_by_total_contributions.png',
+        bbox_inches = 'tight',
+        pad_inches = 0
+    )
+    plt.clf()
+
 
     plt.close()
 

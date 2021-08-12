@@ -222,7 +222,7 @@ class Generator:
         max_system_value    = config.get('max_system_value')
 
         # In order to not require a rescue, the rescue amount must equal 0
-        assert rescue_amount  == 0
+        assert rescue_amount == 0
         
         generated = False
         while not generated:

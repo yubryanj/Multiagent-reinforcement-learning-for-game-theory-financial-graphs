@@ -67,7 +67,6 @@ if __name__ == "__main__":
         # Specify path to the stored agent
         path = f"/itet-stor/bryayu/net_scratch/results/{run}"
 
-
         # Create directory for storing results
         root_dir = f'./data/checkpoints/{args.experiment_number}'
 

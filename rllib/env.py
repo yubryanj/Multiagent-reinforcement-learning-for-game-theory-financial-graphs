@@ -23,7 +23,10 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # Placeholder to get observation size
         self.rescue_range = self.config['maximum_rescue_amount'] - self.config['minimum_rescue_amount']
-        self.config['rescue_amount'] = (self.iteration % self.rescue_range) + self.config['minimum_rescue_amount']
+        if self.config['scenario'] not in ['not in default']:
+            self.config['rescue_amount'] = (self.iteration % self.rescue_range) + self.config['minimum_rescue_amount']
+        else:
+            self.config['rescue_amount'] = 0
         self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)
 
         # Placeholder for individualized betas which is set in the callback
@@ -121,7 +124,10 @@ class Volunteers_Dilemma(MultiAgentEnv):
 
         # NOTE: Uniform rescue amounts are generated to improve interpretability
         # as rescue amounts are not evenly distributed when randomly generated
-        self.config['rescue_amount'] = (self.iteration % self.rescue_range) + self.config['minimum_rescue_amount']
+        if self.config['scenario'] not in ['not in default']:
+            self.config['rescue_amount'] = (self.iteration % self.rescue_range) + self.config['minimum_rescue_amount']
+        else:
+            self.config['rescue_amount'] = 0
 
         # Generate the position and adjacency matrix
         self.position, self.adjacency_matrix = self.generator.generate_scenario(self.config)
