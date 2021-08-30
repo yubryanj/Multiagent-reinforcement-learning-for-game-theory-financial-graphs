@@ -4,7 +4,7 @@ from utils import get_args
 from trainer_pooled import setup
 from ray.rllib.agents.dqn import DQNTrainer
 from env import Volunteers_Dilemma
-from itertools import combinations
+from itertools import combinations_with_replacement
 
 import pandas as pd
 import os
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         policies = config.get('multiagent').get('policies').keys()
 
         # Iterate through the combination of policies
-        for agent_0_policy, agent_1_policy in combinations(policies, 2):
+        for agent_0_policy, agent_1_policy in combinations_with_replacement(policies, 2):
 
             agent_0_beta = config\
                 .get('multiagent')\

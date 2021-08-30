@@ -54,6 +54,44 @@ def plot_confusion_matrix(
     plt.close(fig)
 
 
+def plot_confusion_matrix_for_report(
+    allocations, 
+    rescue_amounts, 
+    save_dir,
+    title,
+    n_rows = 8,
+    n_cols = 8
+    ):
+
+    confusion_matrix = np.zeros((n_rows, n_cols))
+    for actual,optimal in zip(allocations, rescue_amounts):
+            if actual < n_rows:
+                confusion_matrix[int(actual),int(optimal)] += 1
+
+    df_cm = pd.DataFrame(confusion_matrix, index = [i for i in range(n_rows)],
+                      columns = [i for i in range(n_cols)])
+
+
+    df_cm = df_cm.drop(columns=[1,2])
+
+    sns.set(font_scale=2.0)
+
+    fig = plt.figure(figsize = (20,15))
+    ax1 = plt.subplot2grid((20,20), (0,0), colspan=17, rowspan=17)
+    ax1.xaxis.tick_top()
+    ax1.xaxis.set_label_position('top')
+
+    sns.heatmap(df_cm, ax=ax1, annot=True, fmt='g', cmap="Blues", cbar=False)
+    
+    plt.savefig(
+        f'{save_dir}/{title}_without_labels.png',
+        bbox_inches = 'tight',
+        pad_inches = 0.2
+    )
+    plt.clf()
+    plt.close(fig)
+
+
 def plot_table(
         data,
         save_dir,
@@ -116,3 +154,29 @@ def line_plot_with_variances(
     plt.close()
 
     pass
+
+
+def save_table(
+    data,
+    row_labels,
+    column_labels,
+    save_dir
+    ):
+
+    data = np.hstack((row_labels, data))
+
+    # Convert into dataframe
+    tabular = pd.DataFrame(
+        data, 
+        columns = column_labels
+    )
+
+    # Generate latex table from dataframe
+    latex_table = tabular.to_latex(
+        index=False,
+        column_format='c'*data.shape[1],
+    )
+
+    file1 = open(save_dir, 'w')
+    file1.write(latex_table)
+    file1.close()

@@ -4,7 +4,7 @@ import pandas as pd
 import os
 sns.set_theme()
 
-from plot_utils import plot_confusion_matrix, plot_table
+from plot_utils import plot_confusion_matrix, plot_confusion_matrix_for_report, plot_confusion_matrix_for_report
 
 import sys
 sys.path.insert(1, os.getcwd())
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     config, stop = setup(args)
 
     data = pd.read_csv(f'./data/checkpoints/{args.experiment_number}/experimental_data.csv')
-    root_dir = f'./data/checkpoints/{args.experiment_number}'
+    root_dir = f'./data/report_images/{args.experiment_number}'
 
     # Allocate Storage
     subscenario_statistics = []
@@ -42,11 +42,13 @@ if __name__ == "__main__":
                 os.makedirs(save_dir)
         else:
             save_dir = root_dir
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
 
         subscenario_dataset = data[data['sub_scenarios'] == sub_scenario]
 
         # Plot Agent 0's confusion matrix
-        plot_confusion_matrix(
+        plot_confusion_matrix_for_report(
             allocations     = subscenario_dataset['agent 0 actions'], 
             rescue_amounts  = subscenario_dataset['rescue_amount'], 
             save_dir        = save_dir,
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         )
 
         # Plot Agent 1's confusion matrix
-        plot_confusion_matrix(
+        plot_confusion_matrix_for_report(
             allocations     = subscenario_dataset['agent 1 actions'],
             rescue_amounts  = subscenario_dataset['rescue_amount'],
             save_dir        = save_dir,
@@ -70,13 +72,13 @@ if __name__ == "__main__":
 
         for trial in sorted(data['trials'].unique()):
 
-            trial_subdataset = data[data['trials'] == trial]
+            trial_subdataset = subscenario_dataset[subscenario_dataset['trials'] == trial]
             trial_save_dir = f'{save_dir}/{trial}'
             if not os.path.exists(trial_save_dir):
                 os.makedirs(trial_save_dir)
 
             # Plot Agent 0's confusion matrix
-            plot_confusion_matrix(
+            plot_confusion_matrix_for_report(
                 allocations     = trial_subdataset['agent 0 actions'], 
                 rescue_amounts  = trial_subdataset['rescue_amount'], 
                 save_dir        = trial_save_dir,
@@ -86,7 +88,7 @@ if __name__ == "__main__":
             )
 
             # Plot Agent 1's confusion matrix
-            plot_confusion_matrix(
+            plot_confusion_matrix_for_report(
                 allocations     = trial_subdataset['agent 1 actions'],
                 rescue_amounts  = trial_subdataset['rescue_amount'],
                 save_dir        = trial_save_dir,
@@ -123,14 +125,14 @@ if __name__ == "__main__":
             rescue_amount = row['rescue_amount']
             total_contribution = agent_0_contribution + agent_1_contribution
     
-            # Total_contribution has to be greater than the rescue amount
-            if  sub_scenario != 'not in default':
-                if total_contribution >= rescue_amount:
+            # In 'not in default' subscenario, the rescue amount is always 0
+            # thus, no rescue occurs unless the agents allocate larger than 0 assets
+            if sub_scenario in 'not in default' or scenario in 'not in default' :
+                if total_contribution > rescue_amount:
                     number_of_rescues += 1
             else:
-                # In 'not in default' subscenario, the rescue amount is always 0
-                # thus, no rescue occurs unless the agents allocate larger than 0 assets
-                if total_contribution > rescue_amount:
+                # Total_contribution has to be greater than the rescue amount
+                if total_contribution >= rescue_amount:
                     number_of_rescues += 1
 
             # TODO: This number breaks in 'not in default" as the rescue amount is always 0

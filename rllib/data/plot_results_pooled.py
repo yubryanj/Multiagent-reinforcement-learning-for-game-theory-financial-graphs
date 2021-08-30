@@ -8,21 +8,21 @@ sys.path.insert(1, os.getcwd())
 from trainer import setup
 from utils import get_args
 
-from plot_utils import plot_confusion_matrix, plot_table
-from itertools import combinations
+from plot_utils import plot_confusion_matrix, plot_table, plot_confusion_matrix_for_report
+from itertools import combinations_with_replacement
 
 if __name__ == "__main__":
     args = get_args()
     config, stop = setup(args)
 
     master_dataset = pd.read_csv(f'./data/checkpoints/{args.experiment_number}/experimental_data.csv')
-    root_dir = f'./data/checkpoints/{args.experiment_number}'
+    root_dir = f'./data/report_images/{args.experiment_number}'
 
     # Allocate Storage
     aggregated_statistics   = []
     policies                = pd.unique(master_dataset[['agent_0_policies','agent_1_policies']].values.ravel())
 
-    for agent_0_policy, agent_1_policy in combinations(policies, 2):
+    for agent_0_policy, agent_1_policy in combinations_with_replacement(policies, 2):
         
         data = master_dataset[
             (master_dataset['agent_0_policies'] == agent_0_policy) &\
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             os.makedirs(save_dir)
 
         # Plot Agent 0's confusion matrix
-        plot_confusion_matrix(
+        plot_confusion_matrix_for_report(
             allocations     = data['agent 0 actions'], 
             rescue_amounts  = data['rescue_amount'], 
             save_dir        = save_dir,
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         )
 
         # Plot Agent 1's confusion matrix
-        plot_confusion_matrix(
+        plot_confusion_matrix_for_report(
             allocations     = data['agent 1 actions'],
             rescue_amounts  = data['rescue_amount'],
             save_dir        = save_dir,
@@ -131,6 +131,8 @@ if __name__ == "__main__":
         for name, statistic in table_data:
             aggregated_statistics.append([
                 f'{agent_0_policy} beta={agent_0_beta}-{agent_1_policy} beta={agent_1_beta}', 
+                agent_0_policy,
+                agent_1_policy,
                 name, 
                 statistic
             ])
@@ -138,13 +140,15 @@ if __name__ == "__main__":
         for name, statistic in percentage_saved_by_rescue_amount_table:
             aggregated_statistics.append([
             f'{agent_0_policy} beta={agent_0_beta}-{agent_1_policy} beta={agent_1_beta}', 
+            agent_0_policy,
+            agent_1_policy,
             name, 
             statistic
         ])
 
 
     df = pd.DataFrame.from_records(aggregated_statistics)
-    df.columns = ["Agent 0 Policy - Agent 1 Policy", "Description", "Statistic"]
+    df.columns = ["Agent 0 Policy - Agent 1 Policy", "agent 0 policy", "agent 1 policy", "Description", "Statistic"]
 
     df.to_csv(
         f'{root_dir}/aggregated_statistics.csv', 
@@ -152,7 +156,7 @@ if __name__ == "__main__":
     )  
 
     # Plot aggregated table
-    plot_confusion_matrix(
+    plot_confusion_matrix_for_report(
         allocations     = master_dataset['agent 0 actions'], 
         rescue_amounts  = master_dataset['rescue_amount'], 
         save_dir        = root_dir,
@@ -161,7 +165,7 @@ if __name__ == "__main__":
         n_cols          = args.maximum_rescue_amount
     )
 
-    plot_confusion_matrix(
+    plot_confusion_matrix_for_report(
         allocations     = master_dataset['agent 1 actions'], 
         rescue_amounts  = master_dataset['rescue_amount'], 
         save_dir        = root_dir,
