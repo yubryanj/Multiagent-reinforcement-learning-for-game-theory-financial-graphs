@@ -6,7 +6,8 @@ In this thesis, we began the investigation into the ability of learning agents (
 
 Serving as an interesting starting point, there remains multiple research directions to expanding this work such as, but not limited to, incorporating different learning architectures, incorporating market mechanisms, introducing spatial and ad-hoc agent considerations by introducing fixed policy agents in the fashion of agent-based models, introducing noise in agents observation sets in the form of information streams, introducing a variety of financial assets, and refining a process by which real assets impact financial instruments (establishing a link between real assets and financial instruments).  While selectively picking amongst these additions may lead to insights, it may result in more confusion than knowledge by haphazardly incorporating all these considerations.  Therefore, significant wisdom is required in determining the correct question to ask.  We hope future researchers are able to take up these ideas.  
 
-The report can be found <a href="https://kth.diva-portal.org/smash/get/diva2:1616628/FULLTEXT01.pdf"> here </a>
+The report can be found <a href="https://kth.diva-portal.org/smash/get/diva2:1616628/FULLTEXT01.pdf"> here </a> </br>
+Slides can be found <a href="https://docs.google.com/presentation/d/1GxS8eafzcWbo8zSeEq4Rru0MJ7InjSgLbJe53kyY1o4/edit?usp=sharing"> here </a>
 
 ![alt text](https://github.com/yubryanj/MARL-Game-Theory/blob/master/Assets/game_theory.png?raw=true)
 |:--:|
